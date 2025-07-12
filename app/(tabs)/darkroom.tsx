@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Slider from "@react-native-community/slider";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -47,6 +49,10 @@ export default function DarkroomScreen() {
 	const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
 		null
 	);
+	const [imageSize, setImageSize] = useState<{
+		width: number;
+		height: number;
+	} | null>(null);
 
 	const imageRef = useRef<Image>(null);
 
@@ -72,7 +78,12 @@ export default function DarkroomScreen() {
 
 	const handleOpenFile = async () => {
 		const uri = await browseImageFile();
-		if (uri) setImageUri(uri);
+		if (uri) {
+			setImageUri(uri);
+			Image.getSize(uri, (width, height) => {
+				setImageSize({ width, height });
+			});
+		}
 	};
 
 	return (
@@ -134,7 +145,12 @@ export default function DarkroomScreen() {
 								}}
 								style={[
 									styles.image,
-									{ width: 300 * zoom, height: 300 * zoom },
+									imageSize
+										? {
+												width: imageSize.width * zoom,
+												height: imageSize.height * zoom,
+										  }
+										: { width: 300 * zoom, height: 300 * zoom }, // fallback
 								]}
 								resizeMode="contain"
 							/>
@@ -246,7 +262,7 @@ const styles = StyleSheet.create({
 		position: "relative", // add this
 	},
 	editTitle: {
-		color: "#fff",
+		color: "#aaa",
 		marginBottom: 12,
 		fontSize: 16,
 	},
@@ -256,9 +272,9 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	image: {
-		width: 300,
-		height: 300,
-		borderRadius: 12,
+		width: 4800,
+		height: 4000,
+		borderRadius: 4,
 		backgroundColor: "#555",
 	},
 	statusBar: {

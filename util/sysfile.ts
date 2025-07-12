@@ -12,6 +12,25 @@ export async function browseImageFile(): Promise<string | null> {
 		multiple: false,
 	});
 	if (!result.canceled && result.assets && result.assets.length > 0) {
+		const iniPath = FileSystem.documentDirectory + "RecentFile.ini";
+		let recentFiles: string[] = [];
+		try {
+			const iniContent = await FileSystem.readAsStringAsync(iniPath);
+			recentFiles = iniContent
+				.split("\n")
+				.map((line) => line.trim())
+				.filter((line) => line.length > 0);
+		} catch (e) {
+			// File may not exist, ignore
+		}
+		const fileUri = result.assets[0].uri;
+		if (recentFiles[recentFiles.length - 1] !== fileUri) {
+			recentFiles.push(fileUri);
+			if (recentFiles.length > 20) {
+				recentFiles = recentFiles.slice(recentFiles.length - 20);
+			}
+			await FileSystem.writeAsStringAsync(iniPath, recentFiles.join("\n"));
+		}
 		return result.assets[0].uri;
 	}
 	return null;
