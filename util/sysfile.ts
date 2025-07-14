@@ -1,37 +1,47 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
+import { Platform } from "react-native";
 
 /**
  * Browse the filesystem and pick an image file.
- * Returns the file URI or null if cancelled.
+ * Returns the file URI and file name, or null if cancelled.
  */
-export async function browseImageFile(): Promise<string | null> {
+export async function browseImageFile(): Promise<{
+	uri: string;
+	name: string;
+} | null> {
 	const result = await DocumentPicker.getDocumentAsync({
 		type: "image/*",
 		copyToCacheDirectory: true,
 		multiple: false,
 	});
 	if (!result.canceled && result.assets && result.assets.length > 0) {
-		const iniPath = FileSystem.documentDirectory + "RecentFile.ini";
 		let recentFiles: string[] = [];
-		try {
-			const iniContent = await FileSystem.readAsStringAsync(iniPath);
+		if (Platform.OS === "web") {
+			const iniContent = localStorage.getItem("RecentFile") || "";
 			recentFiles = iniContent
 				.split("\n")
 				.map((line) => line.trim())
 				.filter((line) => line.length > 0);
-		} catch (e) {
-			// File may not exist, ignore
+		} else {
+			const iniPath = FileSystem.documentDirectory + "RecentFile";
+			try {
+				const iniContent = await FileSystem.readAsStringAsync(iniPath);
+				recentFiles = iniContent
+					.split("\n")
+					.map((line) => line.trim())
+					.filter((line) => line.length > 0);
+			} catch (e) {
+				// File may not exist, ignore
+			}
 		}
 		const fileUri = result.assets[0].uri;
-		if (recentFiles[recentFiles.length - 1] !== fileUri) {
-			recentFiles.push(fileUri);
-			if (recentFiles.length > 20) {
-				recentFiles = recentFiles.slice(recentFiles.length - 20);
-			}
-			await FileSystem.writeAsStringAsync(iniPath, recentFiles.join("\n"));
-		}
-		return result.assets[0].uri;
+		const fileName = result.assets[0].name || "";
+		console.log("Selected file URI:", fileUri, "Name:", fileName);
+		// Add to recent files if not already present
+
+		return { uri: fileUri, name: fileName };
 	}
 	return null;
 }
@@ -55,6 +65,16 @@ export async function saveImageFile(
 	base64Image: string,
 	destPath: string
 ): Promise<void> {
+	if (Platform.OS === "web") {
+		// On web, trigger a download
+		const link = document.createElement("a");
+		link.href = "data:image/jpeg;base64," + base64Image;
+		link.download = destPath.split("/").pop() || "image.jpg";
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		return;
+	}
 	await FileSystem.writeAsStringAsync(destPath, base64Image, {
 		encoding: FileSystem.EncodingType.Base64,
 	});
@@ -68,6 +88,16 @@ export async function saveAsImageFile(
 	base64Image: string,
 	defaultName = "image.jpg"
 ): Promise<string | null> {
+	if (Platform.OS === "web") {
+		// On web, trigger a download
+		const link = document.createElement("a");
+		link.href = "data:image/jpeg;base64," + base64Image;
+		link.download = defaultName;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		return null;
+	}
 	// On mobile, we can't prompt for a location, so we save to app's document directory
 	const destPath = FileSystem.documentDirectory + defaultName;
 	await saveImageFile(base64Image, destPath);
