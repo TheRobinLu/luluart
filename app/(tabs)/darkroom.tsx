@@ -10,6 +10,7 @@ import {
 	View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { Version } from "../../constants/const";
 import { browseImageFile, saveAsImageFile } from "../../util/sysfile"; // adjust path if needed
 
 export default function DarkroomScreen() {
@@ -53,6 +54,8 @@ export default function DarkroomScreen() {
 		height: number;
 	} | null>(null);
 
+	const [modified, setModified] = useState(false); // Track if image has been modified
+	// Track if image has been modified, used for save confirmation
 	const [selectedTool, setSelectedTool] = useState<string | null>(null);
 	const [cropRect, setCropRect] = useState<{
 		start: { x: number; y: number } | null;
@@ -80,9 +83,10 @@ export default function DarkroomScreen() {
 	const handleMouseMove = (event: any) => {
 		const { locationX, locationY } = event.nativeEvent;
 		// Always update cursor position regardless of image bounds
+		// Ensure x and y are never negative
 		setCursorPos({
-			x: Math.round(locationX / zoom),
-			y: Math.round(locationY / zoom),
+			x: Math.max(0, Math.round(locationX / zoom)),
+			y: Math.max(0, Math.round(locationY / zoom)),
 		});
 	};
 
@@ -117,7 +121,13 @@ export default function DarkroomScreen() {
 	const handleImageTouchStart = (event: any) => {
 		if (selectedTool !== "crop") return;
 		const { locationX, locationY } = event.nativeEvent;
-		setCropRect({ start: { x: locationX, y: locationY }, end: null });
+		setCropRect({
+			start: {
+				x: Math.max(0, locationX),
+				y: Math.max(0, locationY),
+			},
+			end: null,
+		});
 		setIsCropping(true);
 	};
 
@@ -126,9 +136,17 @@ export default function DarkroomScreen() {
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
 
 		// Get mouse position relative to where we started the view
-		const { locationX, locationY, pageX, pageY } = event.nativeEvent;
+		const { locationX, locationY } = event.nativeEvent;
 		setCropRect((prev) =>
-			prev ? { ...prev, end: { x: locationX, y: locationY } } : prev
+			prev
+				? {
+						...prev,
+						end: {
+							x: Math.max(0, Math.min(locationX, imagePosition.width)),
+							y: Math.max(0, Math.min(locationY, imagePosition.height)),
+						},
+				  }
+				: prev
 		);
 	};
 
@@ -136,17 +154,55 @@ export default function DarkroomScreen() {
 		// Keep tracking cursor position even when touch/click ends
 		const { locationX, locationY } = event.nativeEvent;
 		setCursorPos({
-			x: Math.round(locationX / zoom),
-			y: Math.round(locationY / zoom),
+			x: Math.max(0, Math.round(locationX / zoom)),
+			y: Math.max(0, Math.round(locationY / zoom)),
 		});
 
 		// Only do crop handling if we're in crop mode
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
 		setCropRect((prev) =>
-			prev ? { ...prev, end: { x: locationX, y: locationY } } : prev
+			prev
+				? {
+						...prev,
+						end: {
+							x: Math.max(0, Math.min(locationX, imagePosition.width)),
+							y: Math.max(0, Math.min(locationY, imagePosition.height)),
+						},
+				  }
+				: prev
 		);
 		setIsCropping(false);
+		setModified(true); // Mark as modified after cropping
+		// if (confirm("Crop completed, proceed or cancel?")) {
+		// 	// User confirmed, proceed with crop
+		// } else {
+		// 	// User canceled, revert changes
+		// }
+
 		// Rectangle is now complete, you can add further crop logic here
+	};
+
+	const handleApply = () => {
+		switch (selectedTool) {
+			case "crop":
+				applyCrop();
+			default:
+				break;
+		}
+		setModified(false); // Mark as unmodified after applying changes
+	};
+
+	const handleCancel = () => {
+		setModified(false); // Mark as unmodified after canceling changes
+	};
+
+	const applyCrop = () => {
+		if (!cropRect?.start || !cropRect?.end) return;
+
+		// Apply cropping logic here
+		// ...
+
+		setCropRect(null); // Mark as unmodified after applying changes
 	};
 
 	const onImageLayout = (event: any) => {
@@ -157,6 +213,16 @@ export default function DarkroomScreen() {
 	return (
 		<View style={styles.container}>
 			<View style={[styles.toolbox, { width: responsiveWidth }]}>
+				{/* Add logo at the top of toolbox */}
+				<View style={styles.logoContainer}>
+					<Image
+						source={require("../../assets/images/LuluArt.jpg")}
+						style={styles.logoImage}
+						resizeMode="contain"
+					/>
+					<Text style={styles.versionText}>{Version}</Text>
+				</View>
+
 				<View style={styles.fileBox}>
 					<Text style={styles.fileBoxTitle}>File</Text>
 					<View style={styles.iconRow}>
@@ -193,9 +259,7 @@ export default function DarkroomScreen() {
 								key={item.key}
 								style={[
 									styles.iconButton,
-									isSelected
-										? { backgroundColor: "#555" }
-										: { backgroundColor: "#333" },
+									isSelected ? styles.selectedTool : styles.unselectedTool,
 								]}
 								onPress={() => setSelectedTool(item.key)}
 							>
@@ -210,7 +274,9 @@ export default function DarkroomScreen() {
 											<Text
 												style={[
 													styles.iconLabel,
-													isSelected ? { color: "#fff" } : { color: "#ddd" },
+													isSelected
+														? styles.selectedToolText
+														: styles.unselectedToolText,
 												]}
 											>
 												{item.label}
@@ -225,31 +291,29 @@ export default function DarkroomScreen() {
 				{/* Add more tools as needed */}
 			</View>
 			<View style={styles.editArea}>
-				<View style={{ flex: 1, width: "100%" }}>
+				<View style={styles.editAreaContent}>
 					<View id="image-container" style={styles.imageContainer}>
 						<View
 							id="inner-image-container"
-							style={{
-								width: imageSize ? imageSize.width * zoom : 300 * zoom,
-								height: imageSize ? imageSize.height * zoom : 300 * zoom,
-								justifyContent: "center",
-								alignItems: "center",
-								position: "absolute",
-								top: "50%",
-								left: "50%",
-								transform: [
-									{
-										translateX: imageSize
-											? -(imageSize.width * zoom) / 2
-											: -150 * zoom,
-									},
-									{
-										translateY: imageSize
-											? -(imageSize.height * zoom) / 2
-											: -150 * zoom,
-									},
-								],
-							}}
+							style={[
+								styles.innerImageContainer,
+								{
+									width: imageSize ? imageSize.width * zoom : 300 * zoom,
+									height: imageSize ? imageSize.height * zoom : 300 * zoom,
+									transform: [
+										{
+											translateX: imageSize
+												? -(imageSize.width * zoom) / 2
+												: -150 * zoom,
+										},
+										{
+											translateY: imageSize
+												? -(imageSize.height * zoom) / 2
+												: -150 * zoom,
+										},
+									],
+								},
+							]}
 							onStartShouldSetResponder={() => true}
 							onResponderGrant={handleImageTouchStart}
 							onResponderMove={(event) => {
@@ -281,17 +345,15 @@ export default function DarkroomScreen() {
 							{/* Crop rectangle overlay */}
 							{selectedTool === "crop" && cropRect?.start && cropRect?.end && (
 								<View
-									style={{
-										position: "absolute",
-										left: Math.min(cropRect.start.x, cropRect.end.x),
-										top: Math.min(cropRect.start.y, cropRect.end.y),
-										width: Math.abs(cropRect.end.x - cropRect.start.x),
-										height: Math.abs(cropRect.end.y - cropRect.start.y),
-										borderWidth: 2,
-										borderColor: "#fff",
-										borderStyle: "dashed",
-										zIndex: 10,
-									}}
+									style={[
+										styles.cropRectangle,
+										{
+											left: Math.min(cropRect.start.x, cropRect.end.x),
+											top: Math.min(cropRect.start.y, cropRect.end.y),
+											width: Math.abs(cropRect.end.x - cropRect.start.x),
+											height: Math.abs(cropRect.end.y - cropRect.start.y),
+										},
+									]}
 									pointerEvents="none"
 								/>
 							)}
@@ -299,6 +361,27 @@ export default function DarkroomScreen() {
 					</View>
 					{/* Status bar moved to absolute bottom */}
 					<View style={styles.statusBar}>
+						{selectedTool === "crop" && modified && (
+							<View style={styles.cropButtonContainer}>
+								<Pressable
+									style={styles.applyButton}
+									onPress={() => {
+										// TODO: implement crop apply logic
+										handleApply();
+									}}
+								>
+									<Text style={styles.buttonText}>Apply</Text>
+								</Pressable>
+								<Pressable
+									style={styles.cancelButton}
+									onPress={() => {
+										handleCancel();
+									}}
+								>
+									<Text style={styles.buttonText}>Cancel</Text>
+								</Pressable>
+							</View>
+						)}
 						<View style={styles.statusSection}>
 							<Text style={styles.statusText}>
 								{cursorPos
@@ -311,9 +394,8 @@ export default function DarkroomScreen() {
 								Zoom: {(zoom * 100).toFixed(0)}%
 							</Text>
 							<View style={styles.zoomBarContainer}>
-								{/* Replace zoom +/- buttons with a slider */}
 								<Slider
-									style={{ width: 100, height: 24 }}
+									style={styles.slider}
 									minimumValue={0.2}
 									maximumValue={5}
 									step={0.01}
@@ -338,11 +420,13 @@ export default function DarkroomScreen() {
 	);
 }
 
+// Constants for styling
 const ICON_SIZE = 42;
 const ICON_MARGIN = 6;
 const MIN_ICONS = 3;
 const MAX_ICONS = 6;
 
+// All styles moved to the end of the file
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
@@ -350,7 +434,6 @@ const styles = StyleSheet.create({
 		backgroundColor: "#224",
 	},
 	toolbox: {
-		// width is now set dynamically
 		backgroundColor: "#222",
 		padding: 12,
 		justifyContent: "flex-start",
@@ -380,6 +463,18 @@ const styles = StyleSheet.create({
 		maxWidth: ICON_SIZE,
 		justifyContent: "center",
 	},
+	selectedTool: {
+		backgroundColor: "#555",
+	},
+	unselectedTool: {
+		backgroundColor: "#333",
+	},
+	selectedToolText: {
+		color: "#fff",
+	},
+	unselectedToolText: {
+		color: "#ddd",
+	},
 	iconLabel: {
 		color: "#fff",
 		marginLeft: 10,
@@ -405,7 +500,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#111",
-		position: "relative", // add this
+		position: "relative",
+	},
+	editAreaContent: {
+		flex: 1,
+		width: "100%",
 	},
 	editTitle: {
 		color: "#aaa",
@@ -417,24 +516,38 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 	},
+	innerImageContainer: {
+		justifyContent: "center",
+		alignItems: "center",
+		position: "absolute",
+		top: "50%",
+		left: "50%",
+	},
 	image: {
 		width: 4800,
 		height: 4000,
 		borderRadius: 4,
 		backgroundColor: "#555",
 	},
+	cropRectangle: {
+		position: "absolute",
+		borderWidth: 2,
+		borderColor: "#aaa",
+		borderStyle: "dashed",
+		zIndex: 10,
+	},
 	statusBar: {
-		position: "absolute", // add this
-		bottom: 0, // add this
-		left: 0, // add this
-		right: 0, // add this
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
 		width: "100%",
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
 		backgroundColor: "#222",
-		paddingVertical: 4, // reduced from 8
-		paddingHorizontal: 8, // reduced from 16
+		paddingVertical: 4,
+		paddingHorizontal: 8,
 		borderRadius: 8,
 	},
 	statusSection: {
@@ -443,39 +556,60 @@ const styles = StyleSheet.create({
 	},
 	statusText: {
 		color: "#fff",
-		fontSize: 12, // reduced from 15
-		marginRight: 8, // reduced from 12
+		fontSize: 12,
+		marginRight: 8,
 	},
 	zoomBarContainer: {
 		flexDirection: "row",
 		alignItems: "center",
 	},
-	zoomBar: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#333",
-		borderRadius: 6,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-	},
-
-	zoomBtn: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		backgroundColor: "#444",
-		alignItems: "center",
-		justifyContent: "center",
-		marginHorizontal: 4,
-	},
-	zoomBtnText: {
-		color: "#fff",
-		fontSize: 18,
-		fontWeight: "bold",
+	slider: {
+		width: 100,
+		height: 24,
 	},
 	zoomValue: {
 		color: "#fff",
-		fontSize: 12, // reduced from 15
-		marginHorizontal: 6, // reduced from 8
+		fontSize: 12,
+		marginHorizontal: 6,
+	},
+	cropButtonContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginRight: 12,
+	},
+	applyButton: {
+		backgroundColor: "#2f3c2fff",
+		paddingHorizontal: 14,
+		paddingVertical: 6,
+		borderRadius: 6,
+		marginRight: 8,
+	},
+	cancelButton: {
+		backgroundColor: "#433433ff",
+		paddingHorizontal: 14,
+		paddingVertical: 6,
+		borderRadius: 6,
+	},
+	buttonText: {
+		color: "#ccc",
+		fontWeight: "bold",
+	},
+	logoContainer: {
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 12,
+		paddingBottom: 8,
+		borderBottomWidth: 1,
+		borderBottomColor: "#444",
+	},
+	logoImage: {
+		width: "90%",
+		height: 60,
+		marginBottom: 4,
+	},
+	versionText: {
+		color: "#999",
+		fontSize: 10,
+		textAlign: "center",
 	},
 });
