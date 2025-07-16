@@ -25,6 +25,7 @@ export default function DarkroomScreen() {
 		{ key: "crop", icon: "crop-outline", label: "Crop" },
 		{ key: "rotate", icon: "refresh-outline", label: "Rotate" },
 		{ key: "brightness", icon: "sunny-outline", label: "Brightness" },
+		{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
 	];
 
 	const ICON_SIZE = 42;
@@ -53,6 +54,14 @@ export default function DarkroomScreen() {
 		width: number;
 		height: number;
 	} | null>(null);
+
+	// Image history stack for undo/redo operations
+	type ImageStackItem = {
+		image: string; // URI of the image
+		name: string; // Name for this version
+		operation: string; // Operation performed (first is "original")
+	};
+	const [imageStack, setImageStack] = useState<ImageStackItem[]>([]);
 
 	const [modified, setModified] = useState(false); // Track if image has been modified
 	// Track if image has been modified, used for save confirmation
@@ -97,6 +106,15 @@ export default function DarkroomScreen() {
 			setImageFileName(result.name);
 			Image.getSize(result.uri, (width, height) => {
 				setImageSize({ width, height });
+
+				// Add original image to the stack
+				setImageStack([
+					{
+						image: result.uri,
+						name: result.name,
+						operation: "original",
+					},
+				]);
 			});
 		}
 	};
@@ -211,25 +229,25 @@ export default function DarkroomScreen() {
 	};
 
 	return (
-		<View style={styles.container}>
-			<View style={[styles.toolbox, { width: responsiveWidth }]}>
+		<View style={viewStyles.container}>
+			<View style={[viewStyles.toolbox, { width: responsiveWidth }]}>
 				{/* Add logo at the top of toolbox */}
-				<View style={styles.logoContainer}>
+				<View style={viewStyles.logoContainer}>
 					<Image
 						source={require("../../assets/images/LuluArt.jpg")}
-						style={styles.logoImage}
+						style={imageStyles.logoImage}
 						resizeMode="contain"
 					/>
-					<Text style={styles.versionText}>{Version}</Text>
+					<Text style={textStyles.versionText}>{Version}</Text>
 				</View>
 
-				<View style={styles.fileBox}>
-					<Text style={styles.fileBoxTitle}>File</Text>
-					<View style={styles.iconRow}>
+				<View style={viewStyles.fileBox}>
+					<Text style={textStyles.toolboxTitle}>File</Text>
+					<View style={viewStyles.iconRow}>
 						{fileIcons.map((item) => (
 							<Pressable
 								key={item.key}
-								style={styles.iconButton}
+								style={[viewStyles.iconButton]}
 								onPress={
 									item.key === "open"
 										? handleOpenFile
@@ -242,7 +260,7 @@ export default function DarkroomScreen() {
 									<>
 										<Ionicons name={item.icon} size={28} color="#fff" />
 										{hovered && (
-											<Text style={styles.iconLabel}>{item.label}</Text>
+											<Text style={textStyles.iconLabel}>{item.label}</Text>
 										)}
 									</>
 								)}
@@ -250,16 +268,18 @@ export default function DarkroomScreen() {
 						))}
 					</View>
 				</View>
-				<Text style={styles.toolboxTitle}>Toolbox</Text>
-				<View style={styles.iconRow}>
+				<Text style={textStyles.toolboxTitle}>Toolbox</Text>
+				<View style={viewStyles.iconRow}>
 					{toolIcons.map((item) => {
 						const isSelected = selectedTool === item.key;
 						return (
 							<Pressable
 								key={item.key}
 								style={[
-									styles.iconButton,
-									isSelected ? styles.selectedTool : styles.unselectedTool,
+									viewStyles.iconButton,
+									isSelected
+										? viewStyles.selectedTool
+										: viewStyles.unselectedTool,
 								]}
 								onPress={() => setSelectedTool(item.key)}
 							>
@@ -273,10 +293,10 @@ export default function DarkroomScreen() {
 										{hovered && (
 											<Text
 												style={[
-													styles.iconLabel,
+													textStyles.iconLabel,
 													isSelected
-														? styles.selectedToolText
-														: styles.unselectedToolText,
+														? textStyles.selectedToolText
+														: textStyles.unselectedToolText,
 												]}
 											>
 												{item.label}
@@ -288,15 +308,40 @@ export default function DarkroomScreen() {
 						);
 					})}
 				</View>
-				{/* Add more tools as needed */}
+
+				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
+				<View style={viewStyles.spacer}></View>
+
+				{/* Action buttons at the bottom of toolbox */}
+				{selectedTool === "crop" && modified && (
+					<View style={viewStyles.actionButtonContainer}>
+						<Pressable
+							style={viewStyles.button}
+							onPress={() => {
+								handleApply();
+							}}
+						>
+							Apply
+						</Pressable>
+						<Pressable
+							style={viewStyles.button}
+							onPress={() => {
+								handleCancel();
+							}}
+						>
+							Cancel
+						</Pressable>
+					</View>
+				)}
 			</View>
-			<View style={styles.editArea}>
-				<View style={styles.editAreaContent}>
-					<View id="image-container" style={styles.imageContainer}>
+
+			<View style={viewStyles.editArea}>
+				<View style={viewStyles.editAreaContent}>
+					<View id="image-container" style={viewStyles.imageContainer}>
 						<View
 							id="inner-image-container"
 							style={[
-								styles.innerImageContainer,
+								viewStyles.innerImageContainer,
 								{
 									width: imageSize ? imageSize.width * zoom : 300 * zoom,
 									height: imageSize ? imageSize.height * zoom : 300 * zoom,
@@ -331,7 +376,7 @@ export default function DarkroomScreen() {
 										: "https://placehold.co/400x400?text=Edit+Image",
 								}}
 								style={[
-									styles.image,
+									imageStyles.image,
 									imageSize
 										? {
 												width: imageSize.width * zoom,
@@ -346,7 +391,7 @@ export default function DarkroomScreen() {
 							{selectedTool === "crop" && cropRect?.start && cropRect?.end && (
 								<View
 									style={[
-										styles.cropRectangle,
+										viewStyles.cropRectangle,
 										{
 											left: Math.min(cropRect.start.x, cropRect.end.x),
 											top: Math.min(cropRect.start.y, cropRect.end.y),
@@ -360,62 +405,75 @@ export default function DarkroomScreen() {
 						</View>
 					</View>
 					{/* Status bar moved to absolute bottom */}
-					<View style={styles.statusBar}>
-						{selectedTool === "crop" && modified && (
-							<View style={styles.cropButtonContainer}>
-								<Pressable
-									style={styles.applyButton}
-									onPress={() => {
-										// TODO: implement crop apply logic
-										handleApply();
-									}}
-								>
-									<Text style={styles.buttonText}>Apply</Text>
-								</Pressable>
-								<Pressable
-									style={styles.cancelButton}
-									onPress={() => {
-										handleCancel();
-									}}
-								>
-									<Text style={styles.buttonText}>Cancel</Text>
-								</Pressable>
-							</View>
-						)}
-						<View style={styles.statusSection}>
-							<Text style={styles.statusText}>
+					<View style={viewStyles.statusBar}>
+						{/* Consolidated status bar with all info in one row */}
+						<View style={viewStyles.statusRowContainer}>
+							<Text style={textStyles.statusValue}>
 								{cursorPos
-									? `X: ${cursorPos.x}, Y: ${cursorPos.y}`
-									: "X: 0, Y: 0"}
+									? `X: ${cursorPos.x} Y: ${cursorPos.y}`
+									: "X: 0 Y: 0"}
 							</Text>
-						</View>
-						<View style={styles.statusSection}>
-							<Text style={styles.statusText}>
-								Zoom: {(zoom * 100).toFixed(0)}%
-							</Text>
-							<View style={styles.zoomBarContainer}>
+
+							<View style={viewStyles.zoomBarContainer}>
+								<View style={{ flexDirection: "row", alignItems: "center" }}>
+									<Text style={textStyles.statusText}>Zoom: </Text>
+									<Text style={textStyles.zoomValue}>
+										{(zoom * 100).toFixed(0)}%
+									</Text>
+								</View>
 								<Slider
-									style={styles.slider}
+									style={viewStyles.slider}
 									minimumValue={0.2}
 									maximumValue={5}
-									step={0.01}
+									step={0.1}
 									value={zoom}
 									onValueChange={setZoom}
-									minimumTrackTintColor="#fff"
-									maximumTrackTintColor="#444"
-									thumbTintColor="#888"
+									minimumTrackTintColor="#4a90e2"
+									maximumTrackTintColor="#333"
+									thumbTintColor="#fff"
 								/>
-								<Text style={styles.zoomValue}>{zoom.toFixed(2)}x</Text>
+								<Text style={textStyles.zoomValue}>{zoom.toFixed(1)}x</Text>
 							</View>
-						</View>
-						<View style={styles.statusSection}>
-							<Text style={styles.statusText}>
+
+							<Text style={textStyles.statusText}>
 								{imageFileName ? `File: ${imageFileName}` : "No file loaded"}
 							</Text>
 						</View>
 					</View>
 				</View>
 			</View>
+
+			{/* Image stack thumbnails - now on the right side */}
+			{imageStack.length > 0 && (
+				<View style={viewStyles.imageStackContainer}>
+					<Text style={textStyles.stackHeader}>History</Text>
+					{imageStack.map((item, index) => (
+						<Pressable
+							key={index}
+							style={[
+								viewStyles.imageStackItem,
+								imageUri === item.image && viewStyles.selectedStackItem,
+							]}
+							onPress={() => {
+								setImageUri(item.image);
+								// Update image size when selecting from stack
+								Image.getSize(item.image, (width, height) => {
+									setImageSize({ width, height });
+								});
+							}}
+						>
+							<Image
+								source={{ uri: item.image }}
+								style={imageStyles.imageStackThumb}
+								resizeMode="contain"
+							/>
+							<Text style={textStyles.imageStackOperation}>
+								{item.operation}
+							</Text>
+						</Pressable>
+					))}
+				</View>
+			)}
 		</View>
 	);
 }
@@ -427,25 +485,20 @@ const MIN_ICONS = 3;
 const MAX_ICONS = 6;
 
 // All styles moved to the end of the file
-const styles = StyleSheet.create({
+// Separate styles for View, Text, and Image components to avoid type conflicts
+const viewStyles = StyleSheet.create({
 	container: {
 		flex: 1,
 		flexDirection: "row",
-		backgroundColor: "#224",
+		backgroundColor: "#2f2f2f",
 	},
 	toolbox: {
-		backgroundColor: "#222",
+		backgroundColor: "#202020",
 		padding: 12,
 		justifyContent: "flex-start",
 	},
 	fileBox: {
 		marginBottom: 18,
-	},
-	fileBoxTitle: {
-		color: "#fff",
-		fontWeight: "bold",
-		marginBottom: 8,
-		fontSize: 15,
 	},
 	iconRow: {
 		flexDirection: "row",
@@ -455,7 +508,7 @@ const styles = StyleSheet.create({
 	iconButton: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#444",
+		backgroundColor: "#404040",
 		padding: 6,
 		marginRight: ICON_MARGIN,
 		borderRadius: 6,
@@ -469,12 +522,134 @@ const styles = StyleSheet.create({
 	unselectedTool: {
 		backgroundColor: "#333",
 	},
-	selectedToolText: {
-		color: "#fff",
+	toolboxTitle: {
+		marginBottom: 16,
 	},
-	unselectedToolText: {
-		color: "#ddd",
+	editArea: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#111",
+		position: "relative",
 	},
+	editAreaContent: {
+		flex: 1,
+		width: "100%",
+	},
+	imageContainer: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	innerImageContainer: {
+		justifyContent: "center",
+		alignItems: "center",
+		position: "absolute",
+		top: "50%",
+		left: "50%",
+	},
+	cropRectangle: {
+		position: "absolute",
+		borderWidth: 2,
+		borderColor: "#aaa",
+		borderStyle: "dashed",
+		zIndex: 10,
+	},
+	statusBar: {
+		position: "absolute",
+		bottom: 0,
+		backgroundColor: "#222",
+		left: 0,
+		right: 0,
+		width: "100%",
+		paddingVertical: 4,
+		paddingHorizontal: 8,
+	},
+	statusRowContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		width: "100%",
+	},
+	statusItem: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 2,
+		flex: 0, // Don't let items take more space than needed
+	},
+	statusDivider: {
+		width: 1,
+		height: 24,
+		backgroundColor: "#444",
+		marginHorizontal: 8,
+	},
+	// This item should have flex to take available space
+	zoomBarContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		flex: 1,
+		maxWidth: 90, // Limit maximum width
+	},
+	slider: {
+		width: 120, // Fixed width for better control
+		height: 20,
+		marginHorizontal: 8,
+	},
+	spacer: {
+		flex: 1,
+	},
+	actionButtonContainer: {
+		flexDirection: "row",
+		marginTop: 16,
+		marginBottom: 8,
+		width: "100%",
+		justifyContent: "space-between",
+	},
+	button: {
+		backgroundColor: "#404040",
+		color: "#b0b0b0",
+		fontFamily: "Arial",
+		fontWeight: "bold",
+		borderRadius: 6,
+		paddingVertical: 10,
+		alignItems: "center",
+		width: "48%",
+	},
+	logoContainer: {
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 12,
+		paddingBottom: 8,
+		borderBottomWidth: 1,
+		borderBottomColor: "#444",
+	},
+	imageStackContainer: {
+		width: 100,
+		backgroundColor: "#1a1a1a",
+		flexDirection: "column", // Changed from row to column
+		padding: 8,
+		position: "relative", // Changed from absolute positioning
+		height: "100%", // Take full height
+		borderLeftWidth: 1,
+		borderLeftColor: "#333",
+	},
+	imageStackItem: {
+		width: 84, // Fixed width
+		height: 100, // Taller to accommodate the operation label
+		marginBottom: 10, // Vertical spacing between items
+		marginRight: 0, // Remove right margin
+		borderRadius: 4,
+		overflow: "hidden",
+		position: "relative",
+		backgroundColor: "#262626",
+	},
+	selectedStackItem: {
+		borderWidth: 2,
+		borderColor: "#4a90e2",
+	},
+});
+
+const textStyles = StyleSheet.create({
 	iconLabel: {
 		color: "#fff",
 		marginLeft: 10,
@@ -489,127 +664,91 @@ const styles = StyleSheet.create({
 		borderRadius: 4,
 		zIndex: 2,
 	},
-	toolboxTitle: {
+	stackHeader: {
+		color: "#fff",
+		fontSize: 14,
+		fontWeight: "bold",
+		marginBottom: 12,
+		textAlign: "center",
+	},
+	selectedToolText: {
 		color: "#fff",
 		fontWeight: "bold",
-		marginBottom: 16,
+	},
+	unselectedToolText: {
+		color: "#ddd",
+		fontWeight: "bold",
+	},
+	toolboxTitle: {
+		color: "#b0b0b0",
+		fontWeight: "bold",
 		fontSize: 16,
-	},
-	editArea: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#111",
-		position: "relative",
-	},
-	editAreaContent: {
-		flex: 1,
-		width: "100%",
+		marginBottom: 12,
 	},
 	editTitle: {
 		color: "#aaa",
 		marginBottom: 12,
 		fontSize: 16,
 	},
-	imageContainer: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	innerImageContainer: {
-		justifyContent: "center",
-		alignItems: "center",
-		position: "absolute",
-		top: "50%",
-		left: "50%",
-	},
-	image: {
-		width: 4800,
-		height: 4000,
-		borderRadius: 4,
-		backgroundColor: "#555",
-	},
-	cropRectangle: {
-		position: "absolute",
-		borderWidth: 2,
-		borderColor: "#aaa",
-		borderStyle: "dashed",
-		zIndex: 10,
-	},
-	statusBar: {
-		position: "absolute",
-		bottom: 0,
-		left: 0,
-		right: 0,
-		width: "100%",
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		backgroundColor: "#222",
-		paddingVertical: 4,
-		paddingHorizontal: 8,
-		borderRadius: 8,
-	},
-	statusSection: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
 	statusText: {
 		color: "#fff",
 		fontSize: 12,
-		marginRight: 8,
-	},
-	zoomBarContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	slider: {
-		width: 100,
-		height: 24,
+		marginRight: 0,
 	},
 	zoomValue: {
 		color: "#fff",
 		fontSize: 12,
-		marginHorizontal: 6,
+		marginHorizontal: 0,
+		textAlign: "left",
 	},
-	cropButtonContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginRight: 12,
-	},
-	applyButton: {
-		backgroundColor: "#2f3c2fff",
-		paddingHorizontal: 14,
-		paddingVertical: 6,
-		borderRadius: 6,
-		marginRight: 8,
-	},
-	cancelButton: {
-		backgroundColor: "#433433ff",
-		paddingHorizontal: 14,
-		paddingVertical: 6,
-		borderRadius: 6,
-	},
-	buttonText: {
-		color: "#ccc",
+	imageStackOperation: {
+		position: "absolute",
+		bottom: 4,
+		left: 4,
+		right: 4,
+		color: "#fff",
+		fontSize: 12,
+		textAlign: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.7)",
+		paddingVertical: 2,
+		borderRadius: 4,
 		fontWeight: "bold",
 	},
-	logoContainer: {
-		alignItems: "center",
-		justifyContent: "center",
-		marginBottom: 12,
-		paddingBottom: 8,
-		borderBottomWidth: 1,
-		borderBottomColor: "#444",
+	versionText: {
+		marginBottom: 8,
+		color: "#999",
+		fontSize: 10,
+		textAlign: "center",
 	},
+	statusLabel: {
+		color: "#fff",
+		fontSize: 12,
+		marginRight: 4,
+	},
+	statusValue: {
+		color: "#fff",
+		width: 180,
+		fontSize: 12,
+		//fontWeight: "bold",
+	},
+	temp: {
+		// flexDirection: "column",
+	},
+});
+const imageStyles = StyleSheet.create({
 	logoImage: {
 		width: "90%",
 		height: 60,
 		marginBottom: 4,
 	},
-	versionText: {
-		color: "#999",
-		fontSize: 10,
-		textAlign: "center",
+	image: {
+		borderRadius: 4,
+		backgroundColor: "#555",
+	},
+	imageStackThumb: {
+		width: "100%",
+		height: 80, // Adjust thumbnail height
+		borderRadius: 4,
+		backgroundColor: "#555",
 	},
 });
