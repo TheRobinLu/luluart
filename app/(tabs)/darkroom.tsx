@@ -1,4 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+//import { crop } from "@/util/imageEdit";
+import { IImageContext } from "@/app/interface/interface";
+import { cropByPoints } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import React, { useRef, useState } from "react";
 import {
@@ -23,9 +26,10 @@ export default function DarkroomScreen() {
 
 	const toolIcons = [
 		{ key: "crop", icon: "crop-outline", label: "Crop" },
-		{ key: "rotate", icon: "refresh-outline", label: "Rotate" },
+		{ key: "rotate", icon: "sync-outline", label: "Rotate" },
 		{ key: "brightness", icon: "sunny-outline", label: "Brightness" },
 		{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
+		{ key: "flip", icon: "grid-outline", label: "Flip" },
 	];
 
 	const ICON_SIZE = 42;
@@ -44,24 +48,15 @@ export default function DarkroomScreen() {
 	const [responsiveWidth, setResponsiveWidth] = useState(
 		calcResponsiveWidth(Dimensions.get("window").width)
 	);
-	const [imageUri, setImageUri] = useState<string | null>(null);
+	const [editImage, setEditImage] = useState<IImageContext | null>(null);
+
 	const [imageFileName, setImageFileName] = useState<string | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
 		null
 	);
-	const [imageSize, setImageSize] = useState<{
-		width: number;
-		height: number;
-	} | null>(null);
 
-	// Image history stack for undo/redo operations
-	type ImageStackItem = {
-		image: string; // URI of the image
-		name: string; // Name for this version
-		operation: string; // Operation performed (first is "original")
-	};
-	const [imageStack, setImageStack] = useState<ImageStackItem[]>([]);
+	const [imageStack, setImageStack] = useState<IImageContext[]>([]);
 
 	const [modified, setModified] = useState(false); // Track if image has been modified
 	// Track if image has been modified, used for save confirmation
@@ -100,30 +95,20 @@ export default function DarkroomScreen() {
 	};
 
 	const handleOpenFile = async () => {
-		const result = await browseImageFile();
+		const result: IImageContext | null = await browseImageFile();
 		if (result) {
-			setImageUri(result.uri);
-			setImageFileName(result.name);
-			Image.getSize(result.uri, (width, height) => {
-				setImageSize({ width, height });
+			setEditImage(result);
 
-				// Add original image to the stack
-				setImageStack([
-					{
-						image: result.uri,
-						name: result.name,
-						operation: "original",
-					},
-				]);
-			});
+			const stack = { ...result, operations: "original" };
+			setImageStack((prev) => [...prev, stack]);
 		}
 	};
 
 	const handleSaveAs = async () => {
-		if (!imageUri || !imageFileName) return;
+		if (!editImage?.uri || !imageFileName) return;
 		// Read image as base64
 		try {
-			const response = await fetch(imageUri);
+			const response = await fetch(editImage.uri);
 			const blob = await response.blob();
 			const reader = new FileReader();
 			reader.onloadend = async () => {
@@ -163,7 +148,7 @@ export default function DarkroomScreen() {
 							x: Math.max(0, Math.min(locationX, imagePosition.width)),
 							y: Math.max(0, Math.min(locationY, imagePosition.height)),
 						},
-				  }
+					}
 				: prev
 		);
 	};
@@ -186,27 +171,30 @@ export default function DarkroomScreen() {
 							x: Math.max(0, Math.min(locationX, imagePosition.width)),
 							y: Math.max(0, Math.min(locationY, imagePosition.height)),
 						},
-				  }
+					}
 				: prev
 		);
 		setIsCropping(false);
 		setModified(true); // Mark as modified after cropping
-		// if (confirm("Crop completed, proceed or cancel?")) {
-		// 	// User confirmed, proceed with crop
-		// } else {
-		// 	// User canceled, revert changes
-		// }
-
-		// Rectangle is now complete, you can add further crop logic here
 	};
 
-	const handleApply = () => {
+	const handleApply = async () => {
+		let result: IImageContext | null = null;
+
 		switch (selectedTool) {
 			case "crop":
-				applyCrop();
+				result = (await applyCrop()) ?? null;
 			default:
 				break;
 		}
+
+		if (result) {
+			setEditImage(result);
+			// Add to image stack with operation
+			const stack = { ...result, operations: selectedTool || "modified" };
+			setImageStack((prev) => [...prev, stack]);
+		}
+
 		setModified(false); // Mark as unmodified after applying changes
 	};
 
@@ -214,13 +202,24 @@ export default function DarkroomScreen() {
 		setModified(false); // Mark as unmodified after canceling changes
 	};
 
-	const applyCrop = () => {
-		if (!cropRect?.start || !cropRect?.end) return;
+	const applyCrop = async () => {
+		if (!cropRect?.start || !cropRect?.end || !editImage) return;
+		console.log("Applying crop with rect:", cropRect);
+		const result = await cropByPoints(editImage, [
+			cropRect.start,
+			{ x: cropRect.end.x, y: cropRect.start.y },
+			cropRect.end,
+			{ x: cropRect.start.x, y: cropRect.end.y },
+		]);
 
-		// Apply cropping logic here
-		// ...
+		setCropRect({
+			start: null,
+			end: null,
+		});
 
-		setCropRect(null); // Mark as unmodified after applying changes
+		if (result.uri) {
+			return result;
+		} else return null as IImageContext | null;
 	};
 
 	const onImageLayout = (event: any) => {
@@ -230,110 +229,42 @@ export default function DarkroomScreen() {
 
 	return (
 		<View style={viewStyles.container}>
-			<View style={[viewStyles.toolbox, { width: responsiveWidth }]}>
-				{/* Add logo at the top of toolbox */}
-				<View style={viewStyles.logoContainer}>
-					<Image
-						source={require("../../assets/images/LuluArt.jpg")}
-						style={imageStyles.logoImage}
-						resizeMode="contain"
-					/>
-					<Text style={textStyles.versionText}>{Version}</Text>
-				</View>
-
-				<View style={viewStyles.fileBox}>
-					<Text style={textStyles.toolboxTitle}>File</Text>
-					<View style={viewStyles.iconRow}>
-						{fileIcons.map((item) => (
-							<Pressable
-								key={item.key}
-								style={[viewStyles.iconButton]}
-								onPress={
-									item.key === "open"
-										? handleOpenFile
-										: item.key === "save"
-										? handleSaveAs
-										: undefined
+			{/* Image stack thumbnails - now on the left side */}
+			{imageStack.length > 0 && (
+				<View style={viewStyles.imageStackContainer}>
+					<Text style={textStyles.stackHeader}>History</Text>
+					{imageStack.map((item, index) => (
+						<Pressable
+							key={index}
+							style={[
+								viewStyles.imageStackItem,
+								editImage?.uri === item.uri && viewStyles.selectedStackItem,
+							]}
+							onPress={() => {
+								if (item.uri) {
+									Image.getSize(item.uri, (width, height) => {
+										setEditImage({
+											uri: item.uri,
+											width,
+											height,
+											name: editImage?.name || "",
+										});
+									});
 								}
-							>
-								{({ hovered }) => (
-									<>
-										<Ionicons name={item.icon} size={28} color="#fff" />
-										{hovered && (
-											<Text style={textStyles.iconLabel}>{item.label}</Text>
-										)}
-									</>
-								)}
-							</Pressable>
-						))}
-					</View>
-				</View>
-				<Text style={textStyles.toolboxTitle}>Toolbox</Text>
-				<View style={viewStyles.iconRow}>
-					{toolIcons.map((item) => {
-						const isSelected = selectedTool === item.key;
-						return (
-							<Pressable
-								key={item.key}
-								style={[
-									viewStyles.iconButton,
-									isSelected
-										? viewStyles.selectedTool
-										: viewStyles.unselectedTool,
-								]}
-								onPress={() => setSelectedTool(item.key)}
-							>
-								{({ hovered }) => (
-									<>
-										<Ionicons
-											name={item.icon}
-											size={28}
-											color={isSelected ? "#fff" : "#cdf"}
-										/>
-										{hovered && (
-											<Text
-												style={[
-													textStyles.iconLabel,
-													isSelected
-														? textStyles.selectedToolText
-														: textStyles.unselectedToolText,
-												]}
-											>
-												{item.label}
-											</Text>
-										)}
-									</>
-								)}
-							</Pressable>
-						);
-					})}
-				</View>
-
-				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
-				<View style={viewStyles.spacer}></View>
-
-				{/* Action buttons at the bottom of toolbox */}
-				{selectedTool === "crop" && modified && (
-					<View style={viewStyles.actionButtonContainer}>
-						<Pressable
-							style={viewStyles.button}
-							onPress={() => {
-								handleApply();
 							}}
 						>
-							Apply
+							<Image
+								source={{ uri: item.uri ?? "" }}
+								style={imageStyles.imageStackThumb}
+								resizeMode="contain"
+							/>
+							<Text style={textStyles.imageStackOperation}>
+								{item.operations}
+							</Text>
 						</Pressable>
-						<Pressable
-							style={viewStyles.button}
-							onPress={() => {
-								handleCancel();
-							}}
-						>
-							Cancel
-						</Pressable>
-					</View>
-				)}
-			</View>
+					))}
+				</View>
+			)}
 
 			<View style={viewStyles.editArea}>
 				<View style={viewStyles.editAreaContent}>
@@ -343,17 +274,29 @@ export default function DarkroomScreen() {
 							style={[
 								viewStyles.innerImageContainer,
 								{
-									width: imageSize ? imageSize.width * zoom : 300 * zoom,
-									height: imageSize ? imageSize.height * zoom : 300 * zoom,
+									width: editImage
+										? editImage.width
+											? editImage.width * zoom
+											: 300 * zoom
+										: 300 * zoom,
+									height: editImage
+										? editImage.height
+											? editImage.height * zoom
+											: 300 * zoom
+										: 300 * zoom,
 									transform: [
 										{
-											translateX: imageSize
-												? -(imageSize.width * zoom) / 2
+											translateX: editImage
+												? editImage.width
+													? -(editImage.width * zoom) / 2
+													: -150 * zoom
 												: -150 * zoom,
 										},
 										{
-											translateY: imageSize
-												? -(imageSize.height * zoom) / 2
+											translateY: editImage
+												? editImage.height
+													? -(editImage.height * zoom) / 2
+													: -150 * zoom
 												: -150 * zoom,
 										},
 									],
@@ -371,17 +314,17 @@ export default function DarkroomScreen() {
 								id="image"
 								ref={imageRef}
 								source={{
-									uri: imageUri
-										? imageUri
+									uri: editImage?.uri
+										? editImage.uri
 										: "https://placehold.co/400x400?text=Edit+Image",
 								}}
 								style={[
 									imageStyles.image,
-									imageSize
+									editImage
 										? {
-												width: imageSize.width * zoom,
-												height: imageSize.height * zoom,
-										  }
+												width: editImage.width * zoom,
+												height: editImage.height * zoom,
+											}
 										: { width: 300 * zoom, height: 300 * zoom }, // fallback
 								]}
 								resizeMode="contain"
@@ -436,44 +379,121 @@ export default function DarkroomScreen() {
 							</View>
 
 							<Text style={textStyles.statusText}>
-								{imageFileName ? `File: ${imageFileName}` : "No file loaded"}
+								{editImage
+									? editImage.name
+										? `File: ${editImage.name}`
+										: "No file loaded"
+									: "No file loaded"}
 							</Text>
 						</View>
 					</View>
 				</View>
 			</View>
 
-			{/* Image stack thumbnails - now on the right side */}
-			{imageStack.length > 0 && (
-				<View style={viewStyles.imageStackContainer}>
-					<Text style={textStyles.stackHeader}>History</Text>
-					{imageStack.map((item, index) => (
+			<View style={[viewStyles.toolbox, { width: responsiveWidth }]}>
+				{/* Add logo at the top of toolbox */}
+				<View style={viewStyles.logoContainer}>
+					<Image
+						source={require("../../assets/images/LuluArt.jpg")}
+						style={imageStyles.logoImage}
+						resizeMode="contain"
+					/>
+					<Text style={textStyles.versionText}>{Version}</Text>
+				</View>
+
+				<View style={viewStyles.fileBox}>
+					<Text style={textStyles.toolboxTitle}>File</Text>
+					<View style={viewStyles.iconRow}>
+						{fileIcons.map((item) => (
+							<Pressable
+								key={item.key}
+								style={[viewStyles.iconButton]}
+								onPress={
+									item.key === "open"
+										? handleOpenFile
+										: item.key === "save"
+											? handleSaveAs
+											: undefined
+								}
+							>
+								{({ hovered }) => (
+									<>
+										<Ionicons name={item.icon} size={28} color="#ccccff" />
+										{hovered && (
+											<Text style={textStyles.iconLabel}>{item.label}</Text>
+										)}
+									</>
+								)}
+							</Pressable>
+						))}
+					</View>
+				</View>
+				<Text style={textStyles.toolboxTitle}>Toolbox</Text>
+				<View style={viewStyles.iconRow}>
+					{toolIcons.map((item) => {
+						const isSelected = selectedTool === item.key;
+						return (
+							<Pressable
+								key={item.key}
+								style={[
+									viewStyles.iconButton,
+									isSelected
+										? viewStyles.selectedTool
+										: viewStyles.unselectedTool,
+								]}
+								onPress={() => setSelectedTool(item.key)}
+							>
+								{({ hovered }) => (
+									<>
+										<Ionicons
+											name={item.icon}
+											size={28}
+											color={isSelected ? "#ffffff" : "#ccccff"}
+										/>
+										{hovered && (
+											<Text
+												style={[
+													textStyles.iconLabel,
+													isSelected
+														? textStyles.selectedToolText
+														: textStyles.unselectedToolText,
+												]}
+											>
+												{item.label}
+											</Text>
+										)}
+									</>
+								)}
+							</Pressable>
+						);
+					})}
+				</View>
+
+				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
+				<View style={viewStyles.spacer}></View>
+
+				{/* Action buttons at the bottom of toolbox */}
+				{selectedTool === "crop" && modified && (
+					<View style={viewStyles.actionButtonContainer}>
 						<Pressable
-							key={index}
-							style={[
-								viewStyles.imageStackItem,
-								imageUri === item.image && viewStyles.selectedStackItem,
-							]}
+							style={viewStyles.button}
 							onPress={() => {
-								setImageUri(item.image);
-								// Update image size when selecting from stack
-								Image.getSize(item.image, (width, height) => {
-									setImageSize({ width, height });
-								});
+								handleApply();
 							}}
 						>
-							<Image
-								source={{ uri: item.image }}
-								style={imageStyles.imageStackThumb}
-								resizeMode="contain"
-							/>
-							<Text style={textStyles.imageStackOperation}>
-								{item.operation}
-							</Text>
+							<Text style={textStyles.buttonText}>Apply</Text>
 						</Pressable>
-					))}
-				</View>
-			)}
+						<Pressable
+							style={viewStyles.button}
+							onPress={() => {
+								handleCancel();
+							}}
+						>
+							<Text style={textStyles.buttonText}>Cancel</Text>
+						</Pressable>
+					</View>
+				)}
+			</View>
 		</View>
 	);
 }
@@ -494,8 +514,9 @@ const viewStyles = StyleSheet.create({
 	},
 	toolbox: {
 		backgroundColor: "#202020",
-		padding: 12,
+		padding: 8,
 		justifyContent: "flex-start",
+		zIndex: 2,
 	},
 	fileBox: {
 		marginBottom: 18,
@@ -531,6 +552,7 @@ const viewStyles = StyleSheet.create({
 		justifyContent: "center",
 		backgroundColor: "#111",
 		position: "relative",
+		zIndex: 1,
 	},
 	editAreaContent: {
 		flex: 1,
@@ -600,8 +622,8 @@ const viewStyles = StyleSheet.create({
 	},
 	actionButtonContainer: {
 		flexDirection: "row",
-		marginTop: 16,
-		marginBottom: 8,
+		marginTop: 8,
+		marginBottom: 0,
 		width: "100%",
 		justifyContent: "space-between",
 	},
@@ -631,7 +653,8 @@ const viewStyles = StyleSheet.create({
 		position: "relative", // Changed from absolute positioning
 		height: "100%", // Take full height
 		borderLeftWidth: 1,
-		borderLeftColor: "#333",
+		borderLeftColor: "#303030",
+		zIndex: 2, // Ensure it appears below the edit area
 	},
 	imageStackItem: {
 		width: 84, // Fixed width
@@ -703,16 +726,15 @@ const textStyles = StyleSheet.create({
 	},
 	imageStackOperation: {
 		position: "absolute",
-		bottom: 4,
-		left: 4,
-		right: 4,
+		bottom: 2,
+		left: 2,
+		right: 2,
 		color: "#fff",
 		fontSize: 12,
 		textAlign: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.7)",
+		backgroundColor: "rgba(0, 0, 0, 0.2)",
 		paddingVertical: 2,
 		borderRadius: 4,
-		fontWeight: "bold",
 	},
 	versionText: {
 		marginBottom: 8,
@@ -727,9 +749,14 @@ const textStyles = StyleSheet.create({
 	},
 	statusValue: {
 		color: "#fff",
-		width: 180,
+		//width: 12,
 		fontSize: 12,
 		//fontWeight: "bold",
+	},
+	buttonText: {
+		color: "#fff",
+		fontWeight: "bold",
+		textAlign: "center",
 	},
 	temp: {
 		// flexDirection: "column",

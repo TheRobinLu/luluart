@@ -1,16 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { IImageContext } from "@/app/interface/interface";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
-import { Platform } from "react-native";
+import { Image, Platform } from "react-native";
 
 /**
  * Browse the filesystem and pick an image file.
  * Returns the file URI and file name, or null if cancelled.
  */
-export async function browseImageFile(): Promise<{
-	uri: string;
-	name: string;
-} | null> {
+export async function browseImageFile(): Promise<IImageContext | null> {
 	const result = await DocumentPicker.getDocumentAsync({
 		type: "image/*",
 		copyToCacheDirectory: true,
@@ -36,15 +34,48 @@ export async function browseImageFile(): Promise<{
 				// File may not exist, ignore
 			}
 		}
-		const fileUri = result.assets[0].uri;
-		const fileName = result.assets[0].name || "";
-		console.log("Selected file URI:", fileUri, "Name:", fileName);
-		// Add to recent files if not already present
 
-		return { uri: fileUri, name: fileName };
+		let width: number | null = null;
+		let height: number | null = null;
+		try {
+			const size = await getImageSize(result.assets[0].uri);
+			width = size.width;
+			height = size.height;
+		} catch (e) {
+			console.warn("Failed to get image size:", e);
+		}
+
+		const type = result.assets[0].mimeType || "image";
+		const imageContext: IImageContext = {
+			uri: result.assets[0].uri,
+			name: result.assets[0].name || "",
+			width: width ?? 0,
+			height: height ?? 0,
+		};
+		console.log(
+			"Selected file URI:",
+			imageContext.uri,
+			"\nName:",
+			imageContext.name
+		);
+
+		return imageContext;
 	}
 	return null;
 }
+
+// Image.getSize is asynchronous, so wrap in a Promise
+const getImageSize = (
+	uri: string
+): Promise<{ width: number; height: number }> => {
+	return new Promise((resolve, reject) => {
+		Image.getSize(
+			uri,
+			(width, height) => resolve({ width, height }),
+			(error) => reject(error)
+		);
+	});
+};
 
 /**
  * Open an image file and read its contents as a base64 string.
