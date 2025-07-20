@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
-import { cropByPoints } from "@/util/imageEdit";
+import { cropByPoints, rotate } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import React, { useRef, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -52,6 +52,7 @@ export default function DarkroomScreen() {
 		end: { x: number; y: number } | null;
 	} | null>(null);
 	const [isCropping, setIsCropping] = useState(false);
+	const [rotationAngle, setRotationAngle] = useState(0);
 
 	const imageRef = useRef<Image>(null);
 	const [imagePosition, setImagePosition] = useState({
@@ -170,6 +171,10 @@ export default function DarkroomScreen() {
 		switch (selectedTool) {
 			case "crop":
 				result = (await applyCrop()) ?? null;
+				break;
+			case "rotate":
+				result = (await applyRotate()) ?? null;
+				break;
 			default:
 				break;
 		}
@@ -208,9 +213,37 @@ export default function DarkroomScreen() {
 		} else return null as IImageContext | null;
 	};
 
+	const applyRotate = async () => {
+		if (!editImage) return;
+		const result = await rotate(editImage, rotationAngle);
+		if (result) {
+			setEditImage(result);
+			// Add to image stack with operation
+			const stack = { ...result, operations: "rotate" };
+			setImageStack((prev) => [...prev, stack]);
+		}
+	};
+
 	const onImageLayout = (event: any) => {
 		const { x, y, width, height } = event.nativeEvent.layout;
 		setImagePosition({ x, y, width, height });
+	};
+
+	const selectTool = (tool: string) => {
+		switch (tool) {
+			case "crop":
+				// Handle crop tool selection
+				break;
+			case "rotate":
+				// Handle rotate tool selection
+				break;
+			case "resize":
+				// Handle resize tool selection
+				break;
+			default:
+				break;
+		}
+		setSelectedTool(tool);
 	};
 
 	return (
@@ -312,10 +345,66 @@ export default function DarkroomScreen() {
 												height: editImage.height * zoom,
 											}
 										: { width: 300 * zoom, height: 300 * zoom }, // fallback
+									selectedTool === "rotate"
+										? {
+												transform: [
+													{
+														rotate: `${rotationAngle}deg`,
+													},
+												],
+											}
+										: {},
 								]}
 								resizeMode="contain"
 								onLayout={onImageLayout}
 							/>
+							{/* Grid overlay for rotate tool */}
+							{selectedTool === "rotate" && (
+								<View
+									pointerEvents="none"
+									style={[
+										viewStyles.gridOverlay,
+										{
+											width: editImage ? editImage.width * zoom : 300 * zoom,
+											height: editImage ? editImage.height * zoom : 300 * zoom,
+										},
+									]}
+								>
+									{/* 2 vertical and 2 horizontal lines for 3x3 grid */}
+									<View style={[viewStyles.gridLine, { left: "33.33%" }]} />
+									<View style={[viewStyles.gridLine, { left: "66.66%" }]} />
+									<View
+										style={[
+											viewStyles.gridLine,
+											{
+												top: "33.33%",
+												left: 0,
+												right: 0,
+												height: 1,
+												width: "100%",
+												position: "absolute",
+												backgroundColor: currTheme.btntext,
+												opacity: 0.3,
+											},
+										]}
+									/>
+									<View
+										style={[
+											viewStyles.gridLine,
+											{
+												top: "66.66%",
+												left: 0,
+												right: 0,
+												height: 1,
+												width: "100%",
+												position: "absolute",
+												backgroundColor: currTheme.btntext,
+												opacity: 0.3,
+											},
+										]}
+									/>
+								</View>
+							)}
 							{/* Crop rectangle overlay */}
 							{selectedTool === "crop" && cropRect?.start && cropRect?.end && (
 								<View
@@ -440,7 +529,7 @@ export default function DarkroomScreen() {
 										? viewStyles.selectedTool
 										: viewStyles.unselectedTool,
 								]}
-								onPress={() => setSelectedTool(item.key)}
+								onPress={() => selectTool(item.key)}
 							>
 								{({ hovered }) => (
 									<>
@@ -475,27 +564,54 @@ export default function DarkroomScreen() {
 				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
 				<View style={viewStyles.spacer}></View>
 
-				{/* Action buttons at the bottom of toolbox */}
-				{selectedTool === "crop" && modified && (
-					<View style={viewStyles.actionButtonContainer}>
-						<Pressable
-							style={viewStyles.button}
-							onPress={() => {
-								handleApply();
-							}}
-						>
-							<Text style={textStyles.buttonText}>Apply</Text>
-						</Pressable>
-						<Pressable
-							style={viewStyles.button}
-							onPress={() => {
-								handleCancel();
-							}}
-						>
-							<Text style={textStyles.buttonText}>Cancel</Text>
-						</Pressable>
+				{/* Rotate slider control: only show when tool = rotate */}
+				{selectedTool === "rotate" && (
+					<View style={viewStyles.rotateSliderContainer}>
+						<View style={viewStyles.rotateIconContainer}>
+							<Ionicons
+								name="sync-outline"
+								size={24}
+								style={{
+									color: currTheme.btntext,
+								}}
+							/>
+						</View>
+						<View style={viewStyles.rotateSliderWrapper}>
+							<Slider
+								style={viewStyles.rotateSlider}
+								minimumValue={-180}
+								maximumValue={180}
+								step={1}
+								value={rotationAngle}
+								onValueChange={setRotationAngle}
+								minimumTrackTintColor={currTheme.minSlider}
+								maximumTrackTintColor={currTheme.maxSlider}
+								thumbTintColor={currTheme.tint}
+							/>
+							<Text style={textStyles.rotateValue}>{rotationAngle}°</Text>
+						</View>
 					</View>
 				)}
+
+				{/* Action buttons at the bottom */}
+				<View style={viewStyles.actionButtonContainer}>
+					<Pressable
+						style={viewStyles.button}
+						onPress={() => {
+							handleApply();
+						}}
+					>
+						<Text style={textStyles.buttonText}>Apply</Text>
+					</Pressable>
+					<Pressable
+						style={viewStyles.button}
+						onPress={() => {
+							handleCancel();
+						}}
+					>
+						<Text style={textStyles.buttonText}>Cancel</Text>
+					</Pressable>
+				</View>
 			</View>
 		</View>
 	);
@@ -674,6 +790,39 @@ const viewStyles = StyleSheet.create({
 		borderWidth: 2,
 		borderColor: "#4a90e2",
 	},
+	rotateSliderContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		width: "100%",
+		paddingHorizontal: 8,
+		marginBottom: 8,
+	},
+	rotateIconContainer: {
+		width: 24,
+		height: 24,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	rotateSliderWrapper: {
+		flex: 1,
+		marginLeft: 8,
+		justifyContent: "center",
+		alignItems: "stretch",
+	},
+	rotateSlider: {
+		height: 20,
+	},
+	gridOverlay: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+	},
+	gridLine: {
+		position: "absolute",
+		backgroundColor: currTheme.btntext,
+		opacity: 0.3,
+	},
 });
 
 const textStyles = StyleSheet.create({
@@ -760,7 +909,13 @@ const textStyles = StyleSheet.create({
 		fontWeight: "bold",
 		textAlign: "center",
 	},
+	rotateValue: {
+		color: currTheme.text,
+		fontSize: 12,
+		marginLeft: 8,
+	},
 });
+
 const imageStyles = StyleSheet.create({
 	logoImage: {
 		width: "90%",

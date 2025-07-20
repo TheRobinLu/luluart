@@ -94,3 +94,62 @@ export async function crop(
 
 	return image;
 }
+
+export async function rotate(
+	image: IImageContext,
+	angle: number
+): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for rotation.");
+	}
+
+	console.log("Rotating image by", angle, "degrees");
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+
+	manipulator.rotate(angle);
+
+	const renderedImage = await manipulator.renderAsync();
+
+	let newImage: any;
+
+	const imageType = getImageType(image.name || "");
+	switch (imageType) {
+		case "png":
+			newImage = await renderedImage.saveAsync({
+				format: SaveFormat.PNG,
+			});
+			break;
+		case "webp":
+			newImage = await renderedImage.saveAsync({
+				format: SaveFormat.WEBP,
+			});
+			break;
+		case "jpg":
+		case "jpeg":
+			newImage = await renderedImage.saveAsync({
+				format: SaveFormat.JPEG,
+				compress: 0.9, // Adjust quality as needed
+			});
+			break;
+
+		default:
+			newImage = await renderedImage.saveAsync({
+				format: SaveFormat.WEBP,
+			});
+			break;
+	}
+
+	if (newImage) {
+		const retImage: IImageContext = {
+			uri: newImage.uri || "",
+			name: image.name,
+			width: image.width,
+			height: image.height,
+			operations: "rotate",
+		};
+		return retImage;
+	}
+
+	return image;
+}
