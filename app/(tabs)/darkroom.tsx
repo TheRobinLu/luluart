@@ -4,15 +4,9 @@ import { IImageContext } from "@/app/interface/interface";
 import { cropByPoints } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import React, { useRef, useState } from "react";
-import {
-	Dimensions,
-	Image,
-	Pressable,
-	StyleSheet,
-	Text,
-	View,
-} from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
 import { browseImageFile, saveAsImageFile } from "../../util/sysfile"; // adjust path if needed
 
@@ -36,18 +30,10 @@ export default function DarkroomScreen() {
 	const ICON_MARGIN = 6;
 	const MIN_ICONS = 3;
 	const MAX_ICONS = 6;
-	const minWidth = ICON_SIZE * MIN_ICONS + ICON_MARGIN * (MIN_ICONS - 1) + 24;
-	const maxWidth = ICON_SIZE * MAX_ICONS + ICON_MARGIN * (MAX_ICONS - 1) + 24;
 
-	const calcResponsiveWidth = (screenWidth: number) =>
-		Math.min(
-			Math.max(minWidth, screenWidth * 0.18),
-			Math.max(maxWidth, screenWidth * 0.4)
-		);
+	// Calculate width for exactly 6 tool icons
+	const toolboxWidth = ICON_SIZE * 6 + ICON_MARGIN * 5 + 24; // 6 icons, 5 margins, 24px padding
 
-	const [responsiveWidth, setResponsiveWidth] = useState(
-		calcResponsiveWidth(Dimensions.get("window").width)
-	);
 	const [editImage, setEditImage] = useState<IImageContext | null>(null);
 
 	const [imageFileName, setImageFileName] = useState<string | null>(null);
@@ -371,9 +357,9 @@ export default function DarkroomScreen() {
 									step={0.1}
 									value={zoom}
 									onValueChange={setZoom}
-									minimumTrackTintColor="#4a90e2"
-									maximumTrackTintColor="#333"
-									thumbTintColor="#fff"
+									minimumTrackTintColor={currTheme.minSlider}
+									maximumTrackTintColor={currTheme.maxSlider}
+									thumbTintColor={currTheme.tint}
 								/>
 								<Text style={textStyles.zoomValue}>{zoom.toFixed(1)}x</Text>
 							</View>
@@ -390,7 +376,7 @@ export default function DarkroomScreen() {
 				</View>
 			</View>
 
-			<View style={[viewStyles.toolbox, { width: responsiveWidth }]}>
+			<View style={[viewStyles.toolbox, { width: toolboxWidth }]}>
 				{/* Add logo at the top of toolbox */}
 				<View style={viewStyles.logoContainer}>
 					<Image
@@ -407,7 +393,7 @@ export default function DarkroomScreen() {
 						{fileIcons.map((item) => (
 							<Pressable
 								key={item.key}
-								style={[viewStyles.iconButton]}
+								style={[viewStyles.iconButton, viewStyles.unselectedTool]}
 								onPress={
 									item.key === "open"
 										? handleOpenFile
@@ -418,9 +404,22 @@ export default function DarkroomScreen() {
 							>
 								{({ hovered }) => (
 									<>
-										<Ionicons name={item.icon} size={28} color="#ccccff" />
+										<Ionicons
+											name={item.icon}
+											size={28}
+											style={{
+												color: currTheme.btntext,
+											}}
+										/>
 										{hovered && (
-											<Text style={textStyles.iconLabel}>{item.label}</Text>
+											<Text
+												style={[
+													textStyles.iconLabel,
+													{ color: currTheme.btntext },
+												]}
+											>
+												{item.label}
+											</Text>
 										)}
 									</>
 								)}
@@ -448,7 +447,11 @@ export default function DarkroomScreen() {
 										<Ionicons
 											name={item.icon}
 											size={28}
-											color={isSelected ? "#ffffff" : "#ccccff"}
+											style={{
+												color: isSelected
+													? currTheme.btntextSelected
+													: currTheme.btntext,
+											}}
 										/>
 										{hovered && (
 											<Text
@@ -510,10 +513,10 @@ const viewStyles = StyleSheet.create({
 	container: {
 		flex: 1,
 		flexDirection: "row",
-		backgroundColor: "#2f2f2f",
+		backgroundColor: currTheme.background,
 	},
 	toolbox: {
-		backgroundColor: "#202020",
+		backgroundColor: currTheme.panel,
 		padding: 8,
 		justifyContent: "flex-start",
 		zIndex: 2,
@@ -529,7 +532,8 @@ const viewStyles = StyleSheet.create({
 	iconButton: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#404040",
+		backgroundColor: currTheme.btnface,
+		color: currTheme.btntext,
 		padding: 6,
 		marginRight: ICON_MARGIN,
 		borderRadius: 6,
@@ -538,10 +542,10 @@ const viewStyles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	selectedTool: {
-		backgroundColor: "#555",
+		backgroundColor: currTheme.btnfaceSelected,
 	},
 	unselectedTool: {
-		backgroundColor: "#333",
+		backgroundColor: currTheme.btnface,
 	},
 	toolboxTitle: {
 		marginBottom: 16,
@@ -550,7 +554,7 @@ const viewStyles = StyleSheet.create({
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#111",
+		backgroundColor: currTheme.background,
 		position: "relative",
 		zIndex: 1,
 	},
@@ -573,14 +577,14 @@ const viewStyles = StyleSheet.create({
 	cropRectangle: {
 		position: "absolute",
 		borderWidth: 2,
-		borderColor: "#aaa",
+		borderColor: currTheme.btntext,
 		borderStyle: "dashed",
 		zIndex: 10,
 	},
 	statusBar: {
 		position: "absolute",
 		bottom: 0,
-		backgroundColor: "#222",
+		backgroundColor: currTheme.bar,
 		left: 0,
 		right: 0,
 		width: "100%",
@@ -602,7 +606,7 @@ const viewStyles = StyleSheet.create({
 	statusDivider: {
 		width: 1,
 		height: 24,
-		backgroundColor: "#444",
+		backgroundColor: currTheme.btntext,
 		marginHorizontal: 8,
 	},
 	// This item should have flex to take available space
@@ -628,8 +632,8 @@ const viewStyles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	button: {
-		backgroundColor: "#404040",
-		color: "#b0b0b0",
+		backgroundColor: currTheme.btnface,
+		color: currTheme.btntext,
 		fontFamily: "Arial",
 		fontWeight: "bold",
 		borderRadius: 6,
@@ -643,28 +647,28 @@ const viewStyles = StyleSheet.create({
 		marginBottom: 12,
 		paddingBottom: 8,
 		borderBottomWidth: 1,
-		borderBottomColor: "#444",
+		borderBottomColor: currTheme.btnface,
 	},
 	imageStackContainer: {
 		width: 100,
-		backgroundColor: "#1a1a1a",
-		flexDirection: "column", // Changed from row to column
+		backgroundColor: currTheme.panel,
+		flexDirection: "column",
 		padding: 8,
-		position: "relative", // Changed from absolute positioning
-		height: "100%", // Take full height
+		position: "relative",
+		height: "100%",
 		borderLeftWidth: 1,
-		borderLeftColor: "#303030",
-		zIndex: 2, // Ensure it appears below the edit area
+		borderLeftColor: currTheme.btnface,
+		zIndex: 2,
 	},
 	imageStackItem: {
-		width: 84, // Fixed width
-		height: 100, // Taller to accommodate the operation label
-		marginBottom: 10, // Vertical spacing between items
-		marginRight: 0, // Remove right margin
+		width: 84,
+		height: 100,
+		marginBottom: 10,
+		marginRight: 0,
 		borderRadius: 4,
 		overflow: "hidden",
 		position: "relative",
-		backgroundColor: "#262626",
+		backgroundColor: currTheme.panel,
 	},
 	selectedStackItem: {
 		borderWidth: 2,
@@ -674,52 +678,52 @@ const viewStyles = StyleSheet.create({
 
 const textStyles = StyleSheet.create({
 	iconLabel: {
-		color: "#fff",
+		color: currTheme.btntext,
 		marginLeft: 10,
 		fontSize: 15,
 		fontWeight: "500",
 		position: "absolute",
 		top: ICON_SIZE + 2,
 		left: 0,
-		backgroundColor: "#222",
+		backgroundColor: currTheme.background,
 		paddingHorizontal: 6,
 		paddingVertical: 2,
 		borderRadius: 4,
 		zIndex: 2,
 	},
 	stackHeader: {
-		color: "#fff",
+		color: currTheme.text,
 		fontSize: 14,
 		fontWeight: "bold",
 		marginBottom: 12,
 		textAlign: "center",
 	},
 	selectedToolText: {
-		color: "#fff",
+		color: currTheme.btntextSelected,
 		fontWeight: "bold",
 	},
 	unselectedToolText: {
-		color: "#ddd",
+		color: currTheme.btntext,
 		fontWeight: "bold",
 	},
 	toolboxTitle: {
-		color: "#b0b0b0",
+		color: currTheme.btntext,
 		fontWeight: "bold",
 		fontSize: 16,
 		marginBottom: 12,
 	},
 	editTitle: {
-		color: "#aaa",
+		color: currTheme.text,
 		marginBottom: 12,
 		fontSize: 16,
 	},
 	statusText: {
-		color: "#fff",
+		color: currTheme.text,
 		fontSize: 12,
 		marginRight: 0,
 	},
 	zoomValue: {
-		color: "#fff",
+		color: currTheme.text,
 		fontSize: 12,
 		marginHorizontal: 0,
 		textAlign: "left",
@@ -729,7 +733,7 @@ const textStyles = StyleSheet.create({
 		bottom: 2,
 		left: 2,
 		right: 2,
-		color: "#fff",
+		color: currTheme.text,
 		fontSize: 12,
 		textAlign: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.2)",
@@ -738,28 +742,23 @@ const textStyles = StyleSheet.create({
 	},
 	versionText: {
 		marginBottom: 8,
-		color: "#999",
+		color: currTheme.text,
 		fontSize: 10,
 		textAlign: "center",
 	},
 	statusLabel: {
-		color: "#fff",
+		color: currTheme.text,
 		fontSize: 12,
 		marginRight: 4,
 	},
 	statusValue: {
-		color: "#fff",
-		//width: 12,
+		color: currTheme.text,
 		fontSize: 12,
-		//fontWeight: "bold",
 	},
 	buttonText: {
-		color: "#fff",
+		color: currTheme.btntext,
 		fontWeight: "bold",
 		textAlign: "center",
-	},
-	temp: {
-		// flexDirection: "column",
 	},
 });
 const imageStyles = StyleSheet.create({
@@ -770,12 +769,12 @@ const imageStyles = StyleSheet.create({
 	},
 	image: {
 		borderRadius: 4,
-		backgroundColor: "#555",
+		backgroundColor: currTheme.background,
 	},
 	imageStackThumb: {
 		width: "100%",
-		height: 80, // Adjust thumbnail height
+		height: 80,
 		borderRadius: 4,
-		backgroundColor: "#555",
+		backgroundColor: currTheme.background,
 	},
 });
