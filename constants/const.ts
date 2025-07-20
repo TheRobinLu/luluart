@@ -1,5 +1,6 @@
-export const Version = "Version: 0.01.05";
+export const Version = "Version: 0.01.06";
 export const ReleaseNote =
+	"2025-07-19 0.01.06 reset color \n" +
 	"2025-07-19 0.01.05 set color \n" +
 	"2025-07-19 0.01.04 complete cropping tool \n" +
 	"2025-07-15 0.01.03 Images stack \n" +
