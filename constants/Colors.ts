@@ -340,9 +340,10 @@ export const darkTheme = {
 	background: baseColors.stone_950,
 	tint: baseColors.stone_200, // Changed from baseColors.slate_800 to make active tab label lighter
 	btnface: baseColors.stone_700,
-	btnfaceSelected: baseColors.stone_600,
-	btntext: baseColors.stone_400,
+	btnfaceSelected: baseColors.stone_500,
+	btntext: baseColors.stone_300,
 	btntextSelected: baseColors.stone_200,
+	btnfaceHover: baseColors.slate_600,
 	panel: baseColors.stone_900,
 	bar: baseColors.neutral_900,
 	minSlider: baseColors.sky_400,

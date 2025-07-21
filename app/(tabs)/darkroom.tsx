@@ -13,6 +13,7 @@ import {
 	View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
 import { browseImageFile, saveAsImageFile } from "../../util/sysfile"; // adjust path if needed
@@ -43,7 +44,6 @@ export default function DarkroomScreen() {
 
 	const [editImage, setEditImage] = useState<IImageContext | null>(null);
 
-	const [imageFileName, setImageFileName] = useState<string | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
 		null
@@ -60,6 +60,7 @@ export default function DarkroomScreen() {
 	} | null>(null);
 	const [isCropping, setIsCropping] = useState(false);
 	const [rotationAngle, setRotationAngle] = useState(0);
+	const [flipDirection, setFlipDirection] = useState<string | null>(null);
 
 	const imageRef = useRef<Image>(null);
 	const [imagePosition, setImagePosition] = useState({
@@ -100,7 +101,7 @@ export default function DarkroomScreen() {
 	};
 
 	const handleSaveAs = async () => {
-		if (!editImage?.uri || !imageFileName) return;
+		if (!editImage?.uri) return;
 		// Read image as base64
 		try {
 			const response = await fetch(editImage.uri);
@@ -108,7 +109,7 @@ export default function DarkroomScreen() {
 			const reader = new FileReader();
 			reader.onloadend = async () => {
 				const base64 = (reader.result as string).split(",")[1];
-				await saveAsImageFile(base64, imageFileName);
+				await saveAsImageFile(base64, editImage.name || "edited_image");
 			};
 			reader.readAsDataURL(blob);
 		} catch (e) {
@@ -197,6 +198,11 @@ export default function DarkroomScreen() {
 
 	const handleCancel = () => {
 		setModified(false); // Mark as unmodified after canceling changes
+	};
+
+	const handleFlip = (direction: "horizontal" | "vertical") => {
+		setFlipDirection(direction);
+		// TODO: Implement actual flip logic here if needed
 	};
 
 	const applyCrop = async () => {
@@ -539,11 +545,12 @@ export default function DarkroomScreen() {
 						return (
 							<Pressable
 								key={item.key}
-								style={[
+								style={({ hovered }) => [
 									viewStyles.iconButton,
 									isSelected
 										? viewStyles.selectedTool
 										: viewStyles.unselectedTool,
+									hovered && viewStyles.iconButtonHovered,
 								]}
 								onPress={() => selectTool(item.key)}
 							>
@@ -580,6 +587,38 @@ export default function DarkroomScreen() {
 				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
 				<View style={viewStyles.spacer}></View>
 
+				{/* Flip buttons: only show when tool = flip */}
+				{selectedTool === "flip" && (
+					<View style={viewStyles.flipButtonContainer}>
+						<Pressable
+							style={({ hovered }) => [
+								viewStyles.iconButton,
+								hovered && viewStyles.iconButtonHovered,
+							]}
+							onPress={() => handleFlip("horizontal")}
+						>
+							<MaterialCommunityIcons
+								name="flip-horizontal"
+								size={28}
+								color={currTheme.btntext}
+							/>
+						</Pressable>
+						<Pressable
+							style={({ hovered }) => [
+								viewStyles.iconButton,
+								hovered && viewStyles.iconButtonHovered,
+							]}
+							onPress={() => handleFlip("vertical")}
+						>
+							<MaterialCommunityIcons
+								name="flip-vertical"
+								size={28}
+								color={currTheme.btntext}
+							/>
+						</Pressable>
+					</View>
+				)}
+
 				{/* Rotate slider control: only show when tool = rotate */}
 				{selectedTool === "rotate" && (
 					<View style={viewStyles.rotateSliderContainer}>
@@ -612,7 +651,10 @@ export default function DarkroomScreen() {
 				{/* Action buttons at the bottom */}
 				<View style={viewStyles.actionButtonContainer}>
 					<Pressable
-						style={viewStyles.button}
+						style={({ hovered }) => [
+							viewStyles.button,
+							hovered && viewStyles.iconButtonHovered,
+						]}
 						onPress={() => {
 							handleApply();
 						}}
@@ -620,7 +662,10 @@ export default function DarkroomScreen() {
 						<Text style={textStyles.buttonText}>Apply</Text>
 					</Pressable>
 					<Pressable
-						style={viewStyles.button}
+						style={({ hovered }) => [
+							viewStyles.button,
+							hovered && viewStyles.iconButtonHovered,
+						]}
 						onPress={() => {
 							handleCancel();
 						}}
@@ -672,7 +717,17 @@ const viewStyles = StyleSheet.create({
 		maxHeight: ICON_SIZE,
 		maxWidth: ICON_SIZE,
 		justifyContent: "center",
+		// Merge hovered style
+		borderWidth: 1,
+		borderColor: currTheme.btnfaceSelected,
+		borderStyle: "solid",
 	},
+
+	iconButtonHovered: {
+		backgroundColor: currTheme.btnfaceHover,
+		// You can add more hover-specific styles here
+	},
+
 	selectedTool: {
 		backgroundColor: currTheme.btnfaceSelected,
 	},
@@ -864,6 +919,14 @@ const viewStyles = StyleSheet.create({
 		width: 1,
 		zIndex: 3,
 	},
+	flipButtonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginBottom: 12,
+		width: "100%",
+		paddingHorizontal: 8,
+	},
 });
 
 const textStyles = StyleSheet.create({
@@ -955,6 +1018,11 @@ const textStyles = StyleSheet.create({
 		fontSize: 12,
 		marginLeft: 8,
 	},
+	flipLabel: {
+		color: currTheme.btntext,
+		fontSize: 14,
+		marginLeft: 8,
+	},
 });
 
 const imageStyles = StyleSheet.create({
@@ -974,19 +1042,3 @@ const imageStyles = StyleSheet.create({
 		backgroundColor: currTheme.background,
 	},
 });
-
-// Inject custom scrollbar style for web/desktop (optional, only works in web)
-if (typeof document !== "undefined") {
-	const style = document.createElement("style");
-	style.innerHTML = `
-		::-webkit-scrollbar {
-			width: 6px;
-			background-color: ${currTheme.background};
-		}
-		::-webkit-scrollbar-thumb {
-			background-color: ${currTheme.btnface};
-			border-radius: 3px;
-		}
-	`;
-	document.head.appendChild(style);
-}
