@@ -1,5 +1,6 @@
-export const Version = "Version: 0.02.00";
+export const Version = "Version: 0.02.01";
 export const ReleaseNote =
+	"2025-07-19 0.02.01 complete rotation \n" +
 	"2025-07-19 0.02.00 add rotate tool \n" +
 	"2025-07-19 0.01.06 reset color \n" +
 	"2025-07-19 0.01.05 set color \n" +

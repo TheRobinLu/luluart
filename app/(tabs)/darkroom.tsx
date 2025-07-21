@@ -4,7 +4,14 @@ import { IImageContext } from "@/app/interface/interface";
 import { cropByPoints, rotate } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import React, { useRef, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+	Image,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
@@ -87,6 +94,7 @@ export default function DarkroomScreen() {
 			setEditImage(result);
 
 			const stack = { ...result, operations: "original" };
+			resetImageStack();
 			setImageStack((prev) => [...prev, stack]);
 		}
 	};
@@ -120,7 +128,6 @@ export default function DarkroomScreen() {
 		});
 		setIsCropping(true);
 	};
-
 	const handleImageTouchMove = (event: any) => {
 		// Always track mouse moves when cropping, even outside image bounds
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
@@ -139,7 +146,6 @@ export default function DarkroomScreen() {
 				: prev
 		);
 	};
-
 	const handleImageTouchEnd = (event: any) => {
 		// Keep tracking cursor position even when touch/click ends
 		const { locationX, locationY } = event.nativeEvent;
@@ -221,6 +227,7 @@ export default function DarkroomScreen() {
 			// Add to image stack with operation
 			const stack = { ...result, operations: "rotate" };
 			setImageStack((prev) => [...prev, stack]);
+			setRotationAngle(0);
 		}
 	};
 
@@ -235,6 +242,7 @@ export default function DarkroomScreen() {
 				// Handle crop tool selection
 				break;
 			case "rotate":
+				setRotationAngle(0);
 				// Handle rotate tool selection
 				break;
 			case "resize":
@@ -246,42 +254,79 @@ export default function DarkroomScreen() {
 		setSelectedTool(tool);
 	};
 
+	const horizontalGridLines = () => {
+		const lines = [];
+		for (let i = 1; i < 10; i++) {
+			lines.push(
+				<View
+					key={`hgrid-${i}`}
+					style={[viewStyles.gridLineH, { top: `${i * 10}%` }]}
+				/>
+			);
+		}
+		return lines;
+	};
+
+	const verticalGridLines = () => {
+		const lines = [];
+		for (let i = 1; i < 10; i++) {
+			lines.push(
+				<View
+					key={`vgrid-${i}`}
+					style={[viewStyles.gridLineV, { left: `${i * 10}%` }]}
+				/>
+			);
+		}
+		return lines;
+	};
+
+	const resetImageStack = () => {
+		setImageStack([]);
+	};
+
 	return (
 		<View style={viewStyles.container}>
 			{/* Image stack thumbnails - now on the left side */}
 			{imageStack.length > 0 && (
 				<View style={viewStyles.imageStackContainer}>
 					<Text style={textStyles.stackHeader}>History</Text>
-					{imageStack.map((item, index) => (
-						<Pressable
-							key={index}
-							style={[
-								viewStyles.imageStackItem,
-								editImage?.uri === item.uri && viewStyles.selectedStackItem,
-							]}
-							onPress={() => {
-								if (item.uri) {
-									Image.getSize(item.uri, (width, height) => {
-										setEditImage({
-											uri: item.uri,
-											width,
-											height,
-											name: editImage?.name || "",
+					<ScrollView
+						style={viewStyles.imageStackScroll}
+						contentContainerStyle={viewStyles.imageStackScrollContent}
+						showsVerticalScrollIndicator={true}
+						indicatorStyle="black" // dark style for iOS
+					>
+						{imageStack.map((item, index) => (
+							<Pressable
+								key={index}
+								style={[
+									viewStyles.imageStackItem,
+									editImage?.uri === item.uri && viewStyles.selectedStackItem,
+								]}
+								onPress={() => {
+									if (item.uri) {
+										Image.getSize(item.uri, (width, height) => {
+											setEditImage({
+												uri: item.uri,
+												width,
+												height,
+												name: editImage?.name || "",
+											});
 										});
-									});
-								}
-							}}
-						>
-							<Image
-								source={{ uri: item.uri ?? "" }}
-								style={imageStyles.imageStackThumb}
-								resizeMode="contain"
-							/>
-							<Text style={textStyles.imageStackOperation}>
-								{item.operations}
-							</Text>
-						</Pressable>
-					))}
+									}
+								}}
+							>
+								<Image
+									source={{ uri: item.uri ?? "" }}
+									style={imageStyles.imageStackThumb}
+									resizeMode="contain"
+								/>
+								<Text style={textStyles.imageStackOperation}>
+									{item.operations}
+								</Text>
+							</Pressable>
+						))}
+					</ScrollView>
 				</View>
 			)}
 
@@ -371,38 +416,9 @@ export default function DarkroomScreen() {
 									]}
 								>
 									{/* 2 vertical and 2 horizontal lines for 3x3 grid */}
-									<View style={[viewStyles.gridLine, { left: "33.33%" }]} />
-									<View style={[viewStyles.gridLine, { left: "66.66%" }]} />
-									<View
-										style={[
-											viewStyles.gridLine,
-											{
-												top: "33.33%",
-												left: 0,
-												right: 0,
-												height: 1,
-												width: "100%",
-												position: "absolute",
-												backgroundColor: currTheme.btntext,
-												opacity: 0.3,
-											},
-										]}
-									/>
-									<View
-										style={[
-											viewStyles.gridLine,
-											{
-												top: "66.66%",
-												left: 0,
-												right: 0,
-												height: 1,
-												width: "100%",
-												position: "absolute",
-												backgroundColor: currTheme.btntext,
-												opacity: 0.3,
-											},
-										]}
-									/>
+									{horizontalGridLines()}
+									{/* Vertical lines */}
+									{verticalGridLines()}
 								</View>
 							)}
 							{/* Crop rectangle overlay */}
@@ -441,8 +457,8 @@ export default function DarkroomScreen() {
 								</View>
 								<Slider
 									style={viewStyles.slider}
-									minimumValue={0.2}
-									maximumValue={5}
+									minimumValue={0.05}
+									maximumValue={3}
 									step={0.1}
 									value={zoom}
 									onValueChange={setZoom}
@@ -769,18 +785,26 @@ const viewStyles = StyleSheet.create({
 		width: 100,
 		backgroundColor: currTheme.panel,
 		flexDirection: "column",
-		padding: 8,
+		padding: 4,
+		paddingRight: 1,
 		position: "relative",
 		height: "100%",
 		borderLeftWidth: 1,
 		borderLeftColor: currTheme.btnface,
 		zIndex: 2,
+		// Custom scrollbar for Android (Web-like effect)
+	},
+	imageStackScroll: {
+		flex: 1,
+	},
+	imageStackScrollContent: {
+		paddingBottom: 10,
 	},
 	imageStackItem: {
 		width: 84,
 		height: 100,
-		marginBottom: 10,
-		marginRight: 0,
+		marginBottom: 4,
+		marginRight: 2,
 		borderRadius: 4,
 		overflow: "hidden",
 		position: "relative",
@@ -822,6 +846,23 @@ const viewStyles = StyleSheet.create({
 		position: "absolute",
 		backgroundColor: currTheme.btntext,
 		opacity: 0.3,
+		zIndex: 3,
+	},
+	gridLineH: {
+		position: "absolute",
+		backgroundColor: currTheme.btntext,
+		opacity: 0.3,
+		height: 1,
+		width: "100%",
+		zIndex: 3,
+	},
+	gridLineV: {
+		position: "absolute",
+		backgroundColor: currTheme.btntext,
+		opacity: 0.3,
+		height: "100%",
+		width: 1,
+		zIndex: 3,
 	},
 });
 
@@ -933,3 +974,19 @@ const imageStyles = StyleSheet.create({
 		backgroundColor: currTheme.background,
 	},
 });
+
+// Inject custom scrollbar style for web/desktop (optional, only works in web)
+if (typeof document !== "undefined") {
+	const style = document.createElement("style");
+	style.innerHTML = `
+		::-webkit-scrollbar {
+			width: 6px;
+			background-color: ${currTheme.background};
+		}
+		::-webkit-scrollbar-thumb {
+			background-color: ${currTheme.btnface};
+			border-radius: 3px;
+		}
+	`;
+	document.head.appendChild(style);
+}

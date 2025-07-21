@@ -3,7 +3,9 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 function getImageType(name: string): string {
 	const parts = name.split(".");
-	return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+	const returnType =
+		parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+	return returnType.toLowerCase();
 }
 
 export async function cropByPoints(
@@ -55,31 +57,12 @@ export async function crop(
 	const renderedImage = await manipulator.renderAsync();
 
 	const imageType = getImageType(image.name || "");
-	switch (imageType) {
-		case "png":
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.PNG,
-			});
-			break;
-		case "webp":
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.WEBP,
-			});
-			break;
-		case "jpg":
-		case "jpeg":
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.JPEG,
-				compress: 0.9, // Adjust quality as needed
-			});
-			break;
+	const saveFormat = getsaveFormat(imageType);
 
-		default:
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.WEBP,
-			});
-			break;
-	}
+	newImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
 
 	if (newImage) {
 		const retImage: IImageContext = {
@@ -111,45 +94,79 @@ export async function rotate(
 
 	const renderedImage = await manipulator.renderAsync();
 
-	let newImage: any;
-
 	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	const rotatedImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	if (rotatedImage.uri) {
+		const cropRotate = getCropAfterRotation(image.width, image.height, angle);
+
+		let newImage = {
+			uri: rotatedImage.uri,
+			name: image.name,
+			width: rotatedImage.width,
+			height: rotatedImage.height,
+		};
+
+		const croppedImage = await crop(
+			newImage,
+			cropRotate.X,
+			cropRotate.Y,
+			cropRotate.width,
+			cropRotate.height
+		);
+
+		if (croppedImage) {
+			const retImage: IImageContext = {
+				uri: croppedImage.uri || "",
+				name: image.name,
+				width: croppedImage.width,
+				height: croppedImage.height,
+				operations: "rotate",
+			};
+			return retImage;
+		}
+
+		return image;
+	}
+	return image;
+}
+
+function getsaveFormat(imageType: string): SaveFormat {
 	switch (imageType) {
 		case "png":
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.PNG,
-			});
-			break;
+			return SaveFormat.PNG;
 		case "webp":
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.WEBP,
-			});
-			break;
+			return SaveFormat.WEBP;
 		case "jpg":
 		case "jpeg":
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.JPEG,
-				compress: 0.9, // Adjust quality as needed
-			});
-			break;
-
+			return SaveFormat.JPEG;
 		default:
-			newImage = await renderedImage.saveAsync({
-				format: SaveFormat.WEBP,
-			});
-			break;
+			return SaveFormat.JPEG; // Default to JPEG if type is unknown
 	}
+}
 
-	if (newImage) {
-		const retImage: IImageContext = {
-			uri: newImage.uri || "",
-			name: image.name,
-			width: image.width,
-			height: image.height,
-			operations: "rotate",
-		};
-		return retImage;
-	}
+function getCropAfterRotation(
+	originalWidth: number,
+	originalHeight: number,
+	degrees: number
+): { X: number; Y: number; width: number; height: number } {
+	const radians = (degrees * Math.PI) / 180;
+	const newWidth =
+		Math.abs(originalWidth * Math.cos(radians)) +
+		Math.abs(originalHeight * Math.sin(radians));
+	const newHeight =
+		Math.abs(originalHeight * Math.cos(radians)) +
+		Math.abs(originalWidth * Math.sin(radians));
 
-	return image;
+	return {
+		X: newWidth - originalWidth,
+		Y: newHeight - originalHeight,
+		width: originalHeight - (newWidth - originalWidth),
+		height: originalHeight - (newHeight - originalHeight),
+	};
 }
