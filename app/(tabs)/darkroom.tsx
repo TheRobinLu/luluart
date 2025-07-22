@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
-import { cropByPoints, rotate } from "@/util/imageEdit";
+import { cropByPoints, flipH, flipV, rotate } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import React, { useRef, useState } from "react";
 import {
@@ -53,6 +53,9 @@ export default function DarkroomScreen() {
 	const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
 		null
 	);
+
+	const [flippedHorizontally, setFlippedHorizontally] = useState(false);
+	const [flippedVertically, setFlippedVertically] = useState(false);
 
 	const [imageStack, setImageStack] = useState<IImageContext[]>([]);
 
@@ -207,6 +210,20 @@ export default function DarkroomScreen() {
 			case "rotate":
 				result = (await applyRotate()) ?? null;
 				break;
+			case "flip":
+				if (!editImage) break;
+				let flippedImage = editImage;
+				if (flippedHorizontally) {
+					flippedImage = await flipH(flippedImage);
+				}
+				if (flippedVertically) {
+					flippedImage = await flipV(flippedImage);
+				}
+				result = flippedImage;
+				// Reset flip state after apply
+				setFlippedHorizontally(false);
+				setFlippedVertically(false);
+				break;
 			default:
 				break;
 		}
@@ -226,8 +243,12 @@ export default function DarkroomScreen() {
 	};
 
 	const handleFlip = (direction: "horizontal" | "vertical") => {
+		if (direction === "horizontal") {
+			setFlippedHorizontally((prev) => !prev);
+		} else {
+			setFlippedVertically((prev) => !prev);
+		}
 		setFlipDirection(direction);
-		// TODO: Implement actual flip logic here if needed
 	};
 
 	const applyCrop = async () => {
@@ -268,6 +289,11 @@ export default function DarkroomScreen() {
 	};
 
 	const selectTool = (tool: string) => {
+		// Reset flip state when switching away from flip tool
+		if (tool !== "flip") {
+			setFlippedHorizontally(false);
+			setFlippedVertically(false);
+		}
 		switch (tool) {
 			case "crop":
 				// Handle crop tool selection
@@ -427,9 +453,16 @@ export default function DarkroomScreen() {
 													{
 														rotate: `${rotationAngle}deg`,
 													},
+													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
+													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
 												],
 											}
-										: {},
+										: {
+												transform: [
+													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
+													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
+												],
+											},
 								]}
 								resizeMode="contain"
 								onLayout={onImageLayout}

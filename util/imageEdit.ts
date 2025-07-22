@@ -1,13 +1,6 @@
 import { IImageContext } from "@/app/interface/interface";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
-function getImageType(name: string): string {
-	const parts = name.split(".");
-	const returnType =
-		parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
-	return returnType.toLowerCase();
-}
-
 export async function cropByPoints(
 	image: IImageContext,
 	points: { x: number; y: number }[]
@@ -136,6 +129,77 @@ export async function rotate(
 	return image;
 }
 
+export async function flipH(image: IImageContext): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for horizontal flip.");
+	}
+
+	//console.log("Flipping image horizontally");
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+	manipulator.flip("horizontal");
+
+	const renderedImage = await manipulator.renderAsync();
+	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	const flippedImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	if (flippedImage.uri) {
+		const retImage: IImageContext = {
+			uri: flippedImage.uri || "",
+			name: image.name,
+			width: flippedImage.width,
+			height: flippedImage.height,
+			operations: "flipped",
+		};
+		return retImage;
+	}
+
+	return image;
+}
+
+// Add vertical flip
+export async function flipV(image: IImageContext): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for vertical flip.");
+	}
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+	manipulator.flip("vertical");
+
+	const renderedImage = await manipulator.renderAsync();
+	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	const flippedImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	if (flippedImage.uri) {
+		const retImage: IImageContext = {
+			uri: flippedImage.uri || "",
+			name: image.name,
+			width: flippedImage.width,
+			height: flippedImage.height,
+			operations: "flipped",
+		};
+		return retImage;
+	}
+
+	return image;
+}
+
+function getImageType(name: string): string {
+	const parts = name.split(".");
+	const returnType =
+		parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+	return returnType.toLowerCase();
+}
 function getsaveFormat(imageType: string): SaveFormat {
 	switch (imageType) {
 		case "png":
