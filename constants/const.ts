@@ -1,5 +1,6 @@
-export const Version = "Version: 0.02.02";
+export const Version = "Version: 0.02.03";
 export const ReleaseNote =
+	"2025-07-19 0.02.03 add saveAs image to directory \n" +
 	"2025-07-19 0.02.02 change button on hover style \n" +
 	"2025-07-19 0.02.01 complete rotation \n" +
 	"2025-07-19 0.02.00 add rotate tool \n" +

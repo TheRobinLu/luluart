@@ -110,27 +110,3 @@ export async function saveImageFile(
 		encoding: FileSystem.EncodingType.Base64,
 	});
 }
-
-/**
- * Save As: Prompt user for a location and save the image file.
- * Returns the new file URI or null if cancelled.
- */
-export async function saveAsImageFile(
-	base64Image: string,
-	defaultName = "image.jpg"
-): Promise<string | null> {
-	if (Platform.OS === "web") {
-		// On web, trigger a download
-		const link = document.createElement("a");
-		link.href = "data:image/jpeg;base64," + base64Image;
-		link.download = defaultName;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		return null;
-	}
-	// On mobile, we can't prompt for a location, so we save to app's document directory
-	const destPath = FileSystem.documentDirectory + defaultName;
-	await saveImageFile(base64Image, destPath);
-	return destPath;
-}

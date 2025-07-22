@@ -16,8 +16,13 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
-import { browseImageFile, saveAsImageFile } from "../../util/sysfile"; // adjust path if needed
+import { browseImageFile } from "../../util/sysfile"; // adjust path if needed
 
+declare global {
+	interface Window {
+		showDirectoryPicker?: () => Promise<any>;
+	}
+}
 export default function DarkroomScreen() {
 	//const [hovered, setHovered] = useState<string | null>(null);
 
@@ -102,19 +107,39 @@ export default function DarkroomScreen() {
 
 	const handleSaveAs = async () => {
 		if (!editImage?.uri) return;
-		// Read image as base64
-		try {
-			const response = await fetch(editImage.uri);
-			const blob = await response.blob();
-			const reader = new FileReader();
-			reader.onloadend = async () => {
-				const base64 = (reader.result as string).split(",")[1];
-				await saveAsImageFile(base64, editImage.name || "edited_image");
-			};
-			reader.readAsDataURL(blob);
-		} catch (e) {
-			console.error("Save failed", e);
+		const dirHandle = await (window as any).showDirectoryPicker();
+
+		console.log("Saving image to directory:", dirHandle);
+
+		if (!dirHandle) {
+			alert("Directory selection not supported in this environment.");
+			return;
 		}
+
+		const defaultName = editImage.name || "edited_image";
+		const fileHandle = await dirHandle.getFileHandle(defaultName, {
+			create: true,
+		});
+		const writableStream = await fileHandle.createWritable();
+		const base64Image = await fetch(editImage.uri).then((response) =>
+			response.blob().then((blob) => {
+				return new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onloadend = () => {
+						const base64 = (reader.result as string).split(",")[1];
+						resolve(base64);
+					};
+					reader.onerror = reject;
+					reader.readAsDataURL(blob);
+				});
+			})
+		);
+
+		await writableStream.write(
+			Uint8Array.from(atob(base64Image), (c) => c.charCodeAt(0))
+		);
+		await writableStream.close();
+		alert(`Image saved as ${defaultName} in selected directory.`);
 	};
 
 	const handleImageTouchStart = (event: any) => {
