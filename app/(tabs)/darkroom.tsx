@@ -34,8 +34,9 @@ export default function DarkroomScreen() {
 	const toolIcons = [
 		{ key: "crop", icon: "crop-outline", label: "Crop" },
 		{ key: "rotate", icon: "sync-outline", label: "Rotate" },
-		{ key: "brightness", icon: "sunny-outline", label: "Brightness" },
-		{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
+		//{ key: "brightness", icon: "sunny-outline", label: "Brightness" },
+		{ key: "color", icon: "color-palette-sharp", label: "Color" },
+		//{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
 		{ key: "flip", icon: "grid-outline", label: "Flip" },
 	];
 
@@ -68,7 +69,11 @@ export default function DarkroomScreen() {
 	} | null>(null);
 	const [isCropping, setIsCropping] = useState(false);
 	const [rotationAngle, setRotationAngle] = useState(0);
-	const [flipDirection, setFlipDirection] = useState<string | null>(null);
+
+	// Add state for color adjustments
+	const [brightnessValue, setBrightnessValue] = useState(1);
+	const [contrastValue, setContrastValue] = useState(1);
+	const [saturateValue, setSaturateValue] = useState(1);
 
 	const imageRef = useRef<Image>(null);
 	const [imagePosition, setImagePosition] = useState({
@@ -77,14 +82,6 @@ export default function DarkroomScreen() {
 		width: 0,
 		height: 0,
 	});
-
-	const handleImageTouch = (event: any) => {
-		const { locationX, locationY } = event.nativeEvent;
-		setCursorPos({
-			x: Math.round(locationX / zoom),
-			y: Math.round(locationY / zoom),
-		});
-	};
 
 	// Add this function to track cursor position during all mouse/touch movements
 	const handleMouseMove = (event: any) => {
@@ -248,7 +245,6 @@ export default function DarkroomScreen() {
 		} else {
 			setFlippedVertically((prev) => !prev);
 		}
-		setFlipDirection(direction);
 	};
 
 	const applyCrop = async () => {
@@ -305,6 +301,10 @@ export default function DarkroomScreen() {
 			case "resize":
 				// Handle resize tool selection
 				break;
+			case "color":
+				setBrightnessValue(1);
+				setContrastValue(1);
+				setSaturateValue(1);
 			default:
 				break;
 		}
@@ -431,42 +431,75 @@ export default function DarkroomScreen() {
 							}}
 							onResponderRelease={handleImageTouchEnd}
 						>
-							<Image
-								id="image"
-								ref={imageRef}
-								source={{
-									uri: editImage?.uri
-										? editImage.uri
-										: "https://placehold.co/400x400?text=Edit+Image",
-								}}
-								style={[
-									imageStyles.image,
-									editImage
-										? {
-												width: editImage.width * zoom,
-												height: editImage.height * zoom,
-											}
-										: { width: 300 * zoom, height: 300 * zoom }, // fallback
-									selectedTool === "rotate"
-										? {
-												transform: [
-													{
-														rotate: `${rotationAngle}deg`,
-													},
-													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
-													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-												],
-											}
-										: {
-												transform: [
-													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
-													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-												],
-											},
-								]}
-								resizeMode="contain"
-								onLayout={onImageLayout}
-							/>
+							{selectedTool === "color" ? (
+								<Image
+									id="image"
+									ref={imageRef}
+									source={{
+										uri: editImage?.uri
+											? editImage.uri
+											: "https://placehold.co/400x400?text=Edit+Image",
+									}}
+									style={[
+										imageStyles.image,
+										editImage
+											? {
+													width: editImage.width * zoom,
+													height: editImage.height * zoom,
+												}
+											: { width: 300 * zoom, height: 300 * zoom },
+										{
+											transform: [
+												flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
+												flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
+											],
+										},
+									]}
+									resizeMode="contain"
+									onLayout={onImageLayout}
+								/>
+							) : (
+								<Image
+									id="image"
+									ref={imageRef}
+									source={{
+										uri: editImage?.uri
+											? editImage.uri
+											: "https://placehold.co/400x400?text=Edit+Image",
+									}}
+									style={[
+										imageStyles.image,
+										editImage
+											? {
+													width: editImage.width * zoom,
+													height: editImage.height * zoom,
+												}
+											: { width: 300 * zoom, height: 300 * zoom },
+										selectedTool === "rotate"
+											? {
+													transform: [
+														{
+															rotate: `${rotationAngle}deg`,
+														},
+														flippedHorizontally
+															? { scaleX: -1 }
+															: { scaleX: 1 },
+														flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
+													],
+												}
+											: {
+													transform: [
+														flippedHorizontally
+															? { scaleX: -1 }
+															: { scaleX: 1 },
+														flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
+													],
+												},
+									]}
+									resizeMode="contain"
+									onLayout={onImageLayout}
+								/>
+							)}
 							{/* Grid overlay for rotate tool */}
 							{selectedTool === "rotate" && (
 								<View
@@ -702,6 +735,78 @@ export default function DarkroomScreen() {
 								thumbTintColor={currTheme.tint}
 							/>
 							<Text style={textStyles.rotateValue}>{rotationAngle}°</Text>
+						</View>
+					</View>
+				)}
+
+				{/* Color sliders: only show when tool = color */}
+				{selectedTool === "color" && (
+					<View style={viewStyles.colorSlidersContainer}>
+						<View style={viewStyles.colorSliderRow}>
+							<Ionicons
+								name="sunny-outline"
+								size={22}
+								color={currTheme.btntext}
+								style={viewStyles.colorSliderIcon}
+							/>
+							<Slider
+								style={viewStyles.colorSlider}
+								minimumValue={0}
+								maximumValue={2}
+								step={0.01}
+								value={brightnessValue}
+								onValueChange={setBrightnessValue}
+								minimumTrackTintColor={currTheme.minSlider}
+								maximumTrackTintColor={currTheme.maxSlider}
+								thumbTintColor={currTheme.tint}
+							/>
+							<Text style={textStyles.colorSliderValue}>
+								{brightnessValue.toFixed(2)}
+							</Text>
+						</View>
+						<View style={viewStyles.colorSliderRow}>
+							<Ionicons
+								name="contrast-outline"
+								size={22}
+								color={currTheme.btntext}
+								style={viewStyles.colorSliderIcon}
+							/>
+							<Slider
+								style={viewStyles.colorSlider}
+								minimumValue={0}
+								maximumValue={2}
+								step={0.01}
+								value={contrastValue}
+								onValueChange={setContrastValue}
+								minimumTrackTintColor={currTheme.minSlider}
+								maximumTrackTintColor={currTheme.maxSlider}
+								thumbTintColor={currTheme.tint}
+							/>
+							<Text style={textStyles.colorSliderValue}>
+								{contrastValue.toFixed(2)}
+							</Text>
+						</View>
+						<View style={viewStyles.colorSliderRow}>
+							<Ionicons
+								name="color-palette-outline"
+								size={22}
+								color={currTheme.btntext}
+								style={viewStyles.colorSliderIcon}
+							/>
+							<Slider
+								style={viewStyles.colorSlider}
+								minimumValue={0}
+								maximumValue={2}
+								step={0.01}
+								value={saturateValue}
+								onValueChange={setSaturateValue}
+								minimumTrackTintColor={currTheme.minSlider}
+								maximumTrackTintColor={currTheme.maxSlider}
+								thumbTintColor={currTheme.tint}
+							/>
+							<Text style={textStyles.colorSliderValue}>
+								{saturateValue.toFixed(2)}
+							</Text>
 						</View>
 					</View>
 				)}
@@ -985,6 +1090,24 @@ const viewStyles = StyleSheet.create({
 		width: "100%",
 		paddingHorizontal: 8,
 	},
+	colorSlidersContainer: {
+		marginBottom: 16,
+	},
+	colorSliderRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 8,
+	},
+	colorSliderIcon: {
+		marginRight: 8,
+		width: 28,
+		textAlign: "center",
+	},
+	colorSlider: {
+		flex: 1,
+		height: 20,
+		marginRight: 8,
+	},
 });
 
 const textStyles = StyleSheet.create({
@@ -1080,6 +1203,12 @@ const textStyles = StyleSheet.create({
 		color: currTheme.btntext,
 		fontSize: 14,
 		marginLeft: 8,
+	},
+	colorSliderValue: {
+		color: currTheme.text,
+		fontSize: 12,
+		width: 40,
+		textAlign: "right",
 	},
 });
 
