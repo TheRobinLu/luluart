@@ -431,76 +431,43 @@ export default function DarkroomScreen() {
 							}}
 							onResponderRelease={handleImageTouchEnd}
 						>
-							{selectedTool === "color" ? (
-								<Image
-									id="image"
-									ref={imageRef}
-									source={{
-										uri: editImage?.uri
-											? editImage.uri
-											: "https://placehold.co/400x400?text=Edit+Image",
-									}}
-									style={[
-										imageStyles.image,
-										editImage
-											? {
-													width: editImage.width * zoom,
-													height: editImage.height * zoom,
-												}
-											: { width: 300 * zoom, height: 300 * zoom },
-										{
-											transform: [
-												flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
-												flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-											],
-										},
-									]}
-									resizeMode="contain"
-									onLayout={onImageLayout}
-								/>
-							) : (
-								<Image
-									id="image"
-									ref={imageRef}
-									source={{
-										uri: editImage?.uri
-											? editImage.uri
-											: "https://placehold.co/400x400?text=Edit+Image",
-									}}
-									style={[
-										imageStyles.image,
-										editImage
-											? {
-													width: editImage.width * zoom,
-													height: editImage.height * zoom,
-												}
-											: { width: 300 * zoom, height: 300 * zoom },
-										selectedTool === "rotate"
-											? {
-													transform: [
-														{
-															rotate: `${rotationAngle}deg`,
-														},
-														flippedHorizontally
-															? { scaleX: -1 }
-															: { scaleX: 1 },
-														flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-													],
-												}
-											: {
-													transform: [
-														flippedHorizontally
-															? { scaleX: -1 }
-															: { scaleX: 1 },
-														flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-													],
-												},
-									]}
-									resizeMode="contain"
-									onLayout={onImageLayout}
-								/>
-							)}
-							{/* Grid overlay for rotate tool */}
+							<Image
+								id="image"
+								ref={imageRef}
+								source={{
+									uri: editImage?.uri
+										? editImage.uri
+										: "https://placehold.co/400x400?text=Edit+Image",
+								}}
+								style={[
+									imageStyles.image,
+									editImage
+										? {
+												width: editImage.width * zoom,
+												height: editImage.height * zoom,
+											}
+										: { width: 300 * zoom, height: 300 * zoom },
+									selectedTool === "rotate"
+										? {
+												transform: [
+													{
+														rotate: `${rotationAngle}deg`,
+													},
+													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
+													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
+												],
+											}
+										: {
+												transform: [
+													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
+													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
+												],
+											},
+								]}
+								resizeMode="contain"
+								onLayout={onImageLayout}
+							/>
+
 							{selectedTool === "rotate" && (
 								<View
 									pointerEvents="none"
@@ -536,7 +503,7 @@ export default function DarkroomScreen() {
 						</View>
 					</View>
 					{/* Status bar moved to absolute bottom */}
-					<View style={viewStyles.statusBar}>
+					<View id="status-bar" style={viewStyles.statusBar}>
 						{/* Consolidated status bar with all info in one row */}
 						<View style={viewStyles.statusRowContainer}>
 							<Text style={textStyles.statusValue}>
@@ -578,10 +545,14 @@ export default function DarkroomScreen() {
 				</View>
 			</View>
 
-			<View style={[viewStyles.toolbox, { width: toolboxWidth }]}>
+			<View
+				id="toolboxes"
+				style={[viewStyles.toolbox, { width: toolboxWidth }]}
+			>
 				{/* Add logo at the top of toolbox */}
 				<View style={viewStyles.logoContainer}>
 					<Image
+						id="logo"
 						source={require("../../assets/images/LuluArt.jpg")}
 						style={imageStyles.logoImage}
 						resizeMode="contain"
@@ -589,7 +560,7 @@ export default function DarkroomScreen() {
 					<Text style={textStyles.versionText}>{Version}</Text>
 				</View>
 
-				<View style={viewStyles.fileBox}>
+				<View id="file-box" style={viewStyles.fileBox}>
 					<Text style={textStyles.toolboxTitle}>File</Text>
 					<View style={viewStyles.iconRow}>
 						{fileIcons.map((item) => (
@@ -630,7 +601,7 @@ export default function DarkroomScreen() {
 					</View>
 				</View>
 				<Text style={textStyles.toolboxTitle}>Toolbox</Text>
-				<View style={viewStyles.iconRow}>
+				<View id="toolbox" style={viewStyles.iconRow}>
 					{toolIcons.map((item) => {
 						const isSelected = selectedTool === item.key;
 						return (
