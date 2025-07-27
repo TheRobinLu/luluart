@@ -1,5 +1,6 @@
-export const Version = "Version: 0.03.02";
+export const Version = "Version: 0.03.03";
 export const ReleaseNote =
+	"2025-07-27 0.03.03 using expo-gl to perform bright, contrast and saturation adjustments on GUI \n" +
 	"2025-07-26 0.03.02 clean up color feature on image editor area \n" +
 	`2025-07-26 0.03.01 adding color adjustment tools GUI \n` +
 	"2025-07-22 0.03.00 completed flip feature \n" +

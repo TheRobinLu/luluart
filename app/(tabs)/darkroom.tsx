@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
+import GLImage from "@/components/GLImage"; // <-- Add this import (adjust path as needed)
 import { cropByPoints, flipH, flipV, rotate } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
+import { GLView } from "expo-gl";
 import React, { useRef, useState } from "react";
 import {
 	Image,
@@ -431,42 +433,38 @@ export default function DarkroomScreen() {
 							}}
 							onResponderRelease={handleImageTouchEnd}
 						>
-							<Image
-								id="image"
-								ref={imageRef}
-								source={{
-									uri: editImage?.uri
-										? editImage.uri
-										: "https://placehold.co/400x400?text=Edit+Image",
+							<GLView
+								id="gl-view"
+								style={{
+									width: "100%",
+									height: "100%",
 								}}
-								style={[
-									imageStyles.image,
-									editImage
-										? {
-												width: editImage.width * zoom,
-												height: editImage.height * zoom,
-											}
-										: { width: 300 * zoom, height: 300 * zoom },
-									selectedTool === "rotate"
-										? {
-												transform: [
-													{
-														rotate: `${rotationAngle}deg`,
-													},
-													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
-													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-												],
-											}
-										: {
-												transform: [
-													flippedHorizontally ? { scaleX: -1 } : { scaleX: 1 },
-													flippedVertically ? { scaleY: -1 } : { scaleY: 1 },
-												],
-											},
-								]}
-								resizeMode="contain"
-								onLayout={onImageLayout}
-							/>
+								onContextCreate={(gl) => {
+									// Initialize GL context here if needed
+									gl.endFrameEXP();
+								}}
+							>
+								{/* Replace <Image /> with GLImage for brightness */}
+								<GLImage
+									source={{
+										uri: editImage?.uri
+											? editImage.uri
+											: "https://placehold.co/400x400?text=Edit+Image",
+									}}
+									width={editImage?.width ? editImage.width * zoom : 300 * zoom}
+									height={
+										editImage?.height ? editImage.height * zoom : 300 * zoom
+									}
+									brightness={brightnessValue}
+									contrast={contrastValue}
+									saturate={saturateValue}
+									flipH={flippedHorizontally}
+									flipV={flippedVertically}
+									rotation={selectedTool === "rotate" ? rotationAngle : 0}
+									resizeMode="contain"
+									onLayout={onImageLayout}
+								/>
+							</GLView>
 
 							{selectedTool === "rotate" && (
 								<View
