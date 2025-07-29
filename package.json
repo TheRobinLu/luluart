@@ -11,6 +11,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@ernesto_tech/expo-gl-image-filters": "^0.7.1",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-community/slider": "^4.5.7",
     "@react-native-vector-icons/material-design-icons": "^12.0.1",

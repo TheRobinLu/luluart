@@ -2,7 +2,7 @@
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
 import GLImage from "@/components/GLImage"; // <-- Add this import (adjust path as needed)
-import { cropByPoints, flipH, flipV, rotate } from "@/util/imageEdit";
+import { cropByPoints, flipH, flipV, rotate, toneAdj } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import { GLView } from "expo-gl";
 import React, { useRef, useState } from "react";
@@ -37,9 +37,9 @@ export default function DarkroomScreen() {
 		{ key: "crop", icon: "crop-outline", label: "Crop" },
 		{ key: "rotate", icon: "sync-outline", label: "Rotate" },
 		//{ key: "brightness", icon: "sunny-outline", label: "Brightness" },
-		{ key: "color", icon: "color-palette-sharp", label: "Color" },
-		//{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
 		{ key: "flip", icon: "grid-outline", label: "Flip" },
+		{ key: "tone", icon: "color-palette-sharp", label: "Tone" },
+		//{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
 	];
 
 	const ICON_SIZE = 42;
@@ -223,6 +223,12 @@ export default function DarkroomScreen() {
 				setFlippedHorizontally(false);
 				setFlippedVertically(false);
 				break;
+			case "tone":
+				result = (await applyToneAdj()) ?? null;
+				setBrightnessValue(1);
+				setContrastValue(1);
+				setSaturateValue(1);
+				break;
 			default:
 				break;
 		}
@@ -281,6 +287,22 @@ export default function DarkroomScreen() {
 		}
 	};
 
+	const applyToneAdj = async () => {
+		if (!editImage) return;
+		const result = await toneAdj(
+			editImage,
+			brightnessValue,
+			contrastValue,
+			saturateValue
+		);
+		if (result) {
+			setEditImage(result);
+			// Add to image stack with operation
+			const stack = { ...result, operations: "Tone" };
+			setImageStack((prev) => [...prev, stack]);
+		}
+	};
+
 	const onImageLayout = (event: any) => {
 		const { x, y, width, height } = event.nativeEvent.layout;
 		setImagePosition({ x, y, width, height });
@@ -303,7 +325,7 @@ export default function DarkroomScreen() {
 			case "resize":
 				// Handle resize tool selection
 				break;
-			case "color":
+			case "tone":
 				setBrightnessValue(1);
 				setContrastValue(1);
 				setSaturateValue(1);
@@ -709,7 +731,7 @@ export default function DarkroomScreen() {
 				)}
 
 				{/* Color sliders: only show when tool = color */}
-				{selectedTool === "color" && (
+				{selectedTool === "tone" && (
 					<View style={viewStyles.colorSlidersContainer}>
 						<View style={viewStyles.colorSliderRow}>
 							<Ionicons

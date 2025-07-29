@@ -194,6 +194,87 @@ export async function flipV(image: IImageContext): Promise<IImageContext> {
 	return image;
 }
 
+export async function toneAdj(
+	image: IImageContext,
+	brightness: number = 1,
+	contrast: number = 1,
+	saturate: number = 1
+): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for color adjustments.");
+	}
+
+	// For web, we can create an offscreen canvas to apply the adjustments
+	if (typeof window !== "undefined" && typeof document !== "undefined") {
+		return new Promise((resolve, reject) => {
+			// Create an image element to load the source image
+			const img = new Image();
+			img.crossOrigin = "anonymous";
+
+			img.onload = () => {
+				// Create canvas with the image dimensions
+				const canvas = document.createElement("canvas");
+				canvas.width = img.width;
+				canvas.height = img.height;
+				const ctx = canvas.getContext("2d");
+
+				if (!ctx) {
+					reject(new Error("Could not get 2D context for canvas"));
+					return;
+				}
+
+				// Draw the original image
+				ctx.drawImage(img, 0, 0);
+
+				// Apply filters using CSS filter syntax
+				ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`;
+
+				// Clear and redraw with filters
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(img, 0, 0);
+
+				// Reset filter
+				ctx.filter = "none";
+
+				// Convert to base64
+				const imageType = getImageType(image.name || "");
+				const mimeType =
+					imageType === "png"
+						? "image/png"
+						: imageType === "webp"
+							? "image/webp"
+							: "image/jpeg";
+				const quality = 0.9;
+
+				// Get base64 data URL
+				const dataUrl = canvas.toDataURL(mimeType, quality);
+
+				const retImage: IImageContext = {
+					uri: dataUrl,
+					name: image.name,
+					width: img.width,
+					height: img.height,
+					operations: "Tone",
+				};
+
+				resolve(retImage);
+			};
+
+			img.onerror = () => {
+				reject(new Error("Failed to load image for color adjustment"));
+			};
+
+			// Start loading the image
+			img.src = image.uri ?? "";
+		});
+	}
+
+	// For native platforms, you would need to use a different approach
+	// This is a simplified fallback that returns the original image
+	console.warn("Color adjustments are currently only supported on web");
+	return image;
+}
+
 function getImageType(name: string): string {
 	const parts = name.split(".");
 	const returnType =
