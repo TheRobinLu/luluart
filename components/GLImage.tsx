@@ -11,6 +11,8 @@ type GLImageProps = {
 	brightness?: number;
 	contrast?: number;
 	saturate?: number;
+	sepia?: number;
+	hue?: number;
 	flipH?: boolean;
 	flipV?: boolean;
 	rotation?: number;
@@ -26,6 +28,8 @@ export default function GLImage({
 	brightness = 1,
 	contrast = 1,
 	saturate = 1,
+	sepia = 0,
+	hue = 0,
 	flipH = false,
 	flipV = false,
 	rotation = 0,
@@ -33,6 +37,7 @@ export default function GLImage({
 	onLayout,
 }: GLImageProps) {
 	// If GL is available, use GL rendering, otherwise fallback to Image
+
 	const isGLAvailable = false; // Replace with actual GL detection logic if needed
 	if (isGLAvailable) {
 		const asset = Asset.fromURI(source.uri);
@@ -46,12 +51,21 @@ export default function GLImage({
 				uniform float brightness;
 				uniform float contrast;
 				uniform float saturate;
+				uniform float sepia;
+				uniform float hue;
 				void main () {
 					vec4 color = texture2D(image, uv);
 					color.rgb *= brightness;
 					color.rgb = (color.rgb - 0.5) * contrast + 0.5;
 					float avg = (color.r + color.g + color.b) / 3.0;
 					color.rgb = mix(vec3(avg), color.rgb, saturate);
+					// Sepia effect
+					vec3 sepiaColor = vec3(
+						dot(color.rgb, vec3(0.393, 0.769, 0.189)),
+						dot(color.rgb, vec3(0.349, 0.686, 0.168)),
+						dot(color.rgb, vec3(0.272, 0.534, 0.131))
+					);
+					color.rgb = mix(color.rgb, sepiaColor, sepia);
 					gl_FragColor = color;
 				}
 				`,
@@ -67,6 +81,8 @@ export default function GLImage({
 						brightness,
 						contrast,
 						saturate,
+						sepia,
+						hue,
 					}}
 				/>
 			</Surface>
@@ -83,7 +99,11 @@ export default function GLImage({
 		],
 		...(typeof window !== "undefined"
 			? {
-					filter: `brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`,
+					filter: `brightness(${brightness}) 
+									contrast(${contrast}) 
+									saturate(${saturate}) 
+									sepia(${sepia})
+									hue-rotate(${hue}deg)`,
 				}
 			: {}),
 	};

@@ -198,7 +198,9 @@ export async function toneAdj(
 	image: IImageContext,
 	brightness: number = 1,
 	contrast: number = 1,
-	saturate: number = 1
+	saturate: number = 1,
+	sepia: number = 0,
+	hue: number = 0
 ): Promise<IImageContext> {
 	if (!image || !image.uri) {
 		throw new Error("Invalid image context provided for color adjustments.");
@@ -227,7 +229,9 @@ export async function toneAdj(
 				ctx.drawImage(img, 0, 0);
 
 				// Apply filters using CSS filter syntax
-				ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`;
+				let filterString = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hue + 90}deg) sepia(${sepia})`;
+
+				ctx.filter = filterString;
 
 				// Clear and redraw with filters
 				ctx.clearRect(0, 0, canvas.width, canvas.height);

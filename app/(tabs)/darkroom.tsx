@@ -5,6 +5,7 @@ import GLImage from "@/components/GLImage"; // <-- Add this import (adjust path 
 import { cropByPoints, flipH, flipV, rotate, toneAdj } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
 import { GLView } from "expo-gl";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useRef, useState } from "react";
 import {
 	Image,
@@ -16,7 +17,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import { currTheme } from "../../constants/Colors";
+import { baseColors, currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
 import { browseImageFile } from "../../util/sysfile"; // adjust path if needed
 
@@ -76,6 +77,8 @@ export default function DarkroomScreen() {
 	const [brightnessValue, setBrightnessValue] = useState(1);
 	const [contrastValue, setContrastValue] = useState(1);
 	const [saturateValue, setSaturateValue] = useState(1);
+	const [sepiaValue, setSepiaValue] = useState(0);
+	const [hueValue, setHueValue] = useState(0);
 
 	const imageRef = useRef<Image>(null);
 	const [imagePosition, setImagePosition] = useState({
@@ -225,9 +228,6 @@ export default function DarkroomScreen() {
 				break;
 			case "tone":
 				result = (await applyToneAdj()) ?? null;
-				setBrightnessValue(1);
-				setContrastValue(1);
-				setSaturateValue(1);
 				break;
 			default:
 				break;
@@ -293,13 +293,21 @@ export default function DarkroomScreen() {
 			editImage,
 			brightnessValue,
 			contrastValue,
-			saturateValue
+			saturateValue,
+			sepiaValue,
+			hueValue
 		);
 		if (result) {
 			setEditImage(result);
 			// Add to image stack with operation
 			const stack = { ...result, operations: "Tone" };
 			setImageStack((prev) => [...prev, stack]);
+			// Reset all sliders after applying
+			setBrightnessValue(1);
+			setContrastValue(1);
+			setSaturateValue(1);
+			setSepiaValue(0);
+			setHueValue(0);
 		}
 	};
 
@@ -329,6 +337,8 @@ export default function DarkroomScreen() {
 				setBrightnessValue(1);
 				setContrastValue(1);
 				setSaturateValue(1);
+				setSepiaValue(0);
+				setHueValue(0);
 			default:
 				break;
 		}
@@ -480,6 +490,8 @@ export default function DarkroomScreen() {
 									brightness={brightnessValue}
 									contrast={contrastValue}
 									saturate={saturateValue}
+									sepia={sepiaValue}
+									hue={hueValue}
 									flipH={flippedHorizontally}
 									flipV={flippedVertically}
 									rotation={selectedTool === "rotate" ? rotationAngle : 0}
@@ -799,6 +811,67 @@ export default function DarkroomScreen() {
 								{saturateValue.toFixed(2)}
 							</Text>
 						</View>
+						{/* New Sepia slider */}
+						<View style={viewStyles.colorSliderRow}>
+							<Ionicons
+								name="color-filter-outline"
+								size={22}
+								color={currTheme.btntext}
+								style={viewStyles.colorSliderIcon}
+							/>
+							<Slider
+								style={viewStyles.colorSlider}
+								minimumValue={0}
+								maximumValue={1}
+								step={0.01}
+								value={sepiaValue}
+								onValueChange={setSepiaValue}
+								minimumTrackTintColor={baseColors.orange_400}
+								maximumTrackTintColor={baseColors.blue_300}
+								thumbTintColor={currTheme.tint}
+							/>
+							<Text style={textStyles.colorSliderValue}>
+								{sepiaValue.toFixed(2)}
+							</Text>
+						</View>
+						{/* Hue slider with color spectrum */}
+						<View style={[viewStyles.colorSliderRow, { padding: 2 }]}>
+							<Image
+								source={require("../../assets/images/hue_wheel.png")}
+								style={[viewStyles.colorSliderIcon, { width: 26, height: 26 }]}
+							/>
+							<View style={viewStyles.hueSliderContainer}>
+								<LinearGradient
+									colors={[
+										baseColors.red_500,
+										baseColors.orange_400,
+										baseColors.yellow_400,
+										baseColors.green_500,
+										baseColors.blue_500,
+										baseColors.purple_700,
+										baseColors.violet_600,
+										baseColors.red_500,
+									]}
+									start={{ x: 0, y: 0 }}
+									end={{ x: 1, y: 0 }}
+									style={viewStyles.hueGradient}
+								/>
+								<Slider
+									style={viewStyles.hueSlider}
+									minimumValue={-180}
+									maximumValue={180}
+									step={1}
+									value={hueValue}
+									onValueChange={setHueValue}
+									minimumTrackTintColor="transparent"
+									maximumTrackTintColor="transparent"
+									thumbTintColor={currTheme.tint}
+								/>
+							</View>
+							<Text style={textStyles.colorSliderValue}>
+								{hueValue.toFixed(0)}°
+							</Text>
+						</View>
 					</View>
 				)}
 
@@ -1098,6 +1171,27 @@ const viewStyles = StyleSheet.create({
 		flex: 1,
 		height: 20,
 		marginRight: 8,
+	},
+	hueSliderContainer: {
+		flex: 1,
+		height: 20,
+		marginRight: 8,
+		position: "relative",
+		justifyContent: "center",
+	},
+	hueGradient: {
+		position: "absolute",
+		height: 6,
+		borderRadius: 3,
+		left: 0,
+		right: 0,
+		top: 7,
+		zIndex: 1,
+	},
+	hueSlider: {
+		flex: 1,
+		height: 20,
+		zIndex: 2,
 	},
 });
 
