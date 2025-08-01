@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
-import GLImage from "@/components/GLImage"; // <-- Add this import (adjust path as needed)
 import { cropByPoints, flipH, flipV, rotate, toneAdj } from "@/util/imageEdit";
 import Slider from "@react-native-community/slider";
-import { GLView } from "expo-gl";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
 	Image,
 	Pressable,
@@ -28,7 +26,8 @@ declare global {
 }
 export default function DarkroomScreen() {
 	//const [hovered, setHovered] = useState<string | null>(null);
-
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const imgRef = useRef<HTMLImageElement>(null);
 	const fileIcons = [
 		{ key: "open", icon: "folder-open-outline", label: "Open" },
 		{ key: "save", icon: "save-outline", label: "Save" },
@@ -80,13 +79,75 @@ export default function DarkroomScreen() {
 	const [sepiaValue, setSepiaValue] = useState(0);
 	const [hueValue, setHueValue] = useState(0);
 
-	const imageRef = useRef<Image>(null);
 	const [imagePosition, setImagePosition] = useState({
 		x: 0,
 		y: 0,
 		width: 0,
 		height: 0,
 	});
+
+	// Draw image to canvas whenever image/filter/zoom changes
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		const ctx = canvas?.getContext("2d");
+		const img = imgRef.current;
+		if (!canvas || !ctx || !img || !editImage?.uri) return;
+
+		// Set canvas size to match zoomed image
+		const width = editImage.width ? editImage.width * zoom : 300 * zoom;
+		const height = editImage.height ? editImage.height * zoom : 300 * zoom;
+		canvas.width = width;
+		canvas.height = height;
+
+		// Only draw if image is loaded
+		if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+			ctx.clearRect(0, 0, width, height);
+			ctx.save();
+
+			// Apply flip and rotation transforms
+			ctx.translate(width / 2, height / 2);
+			if (selectedTool === "rotate" && rotationAngle) {
+				ctx.rotate((rotationAngle * Math.PI) / 180);
+			}
+			ctx.scale(flippedHorizontally ? -1 : 1, flippedVertically ? -1 : 1);
+
+			// Apply filter
+			ctx.filter = `
+				brightness(${brightnessValue})
+				contrast(${contrastValue})
+				saturate(${saturateValue})
+				hue-rotate(${hueValue}deg)
+				sepia(${sepiaValue})
+			`.replace(/\s+/g, " ");
+
+			// Draw image centered
+			ctx.drawImage(
+				img,
+				(-editImage.width * zoom) / 2,
+				(-editImage.height * zoom) / 2,
+				editImage.width * zoom,
+				editImage.height * zoom
+			);
+
+			ctx.restore();
+		}
+	}, [
+		editImage,
+		brightnessValue,
+		contrastValue,
+		saturateValue,
+		sepiaValue,
+		hueValue,
+		zoom,
+		flippedHorizontally,
+		flippedVertically,
+		selectedTool,
+		rotationAngle,
+	]);
+
+	const handleImgLoad = () => {
+		// Just trigger the effect above
+	};
 
 	// Add this function to track cursor position during all mouse/touch movements
 	const handleMouseMove = (event: any) => {
@@ -465,40 +526,41 @@ export default function DarkroomScreen() {
 							}}
 							onResponderRelease={handleImageTouchEnd}
 						>
-							<GLView
-								id="gl-view"
+							{/* Canvas 2D rendering */}
+							<View
 								style={{
 									width: "100%",
 									height: "100%",
-								}}
-								onContextCreate={(gl) => {
-									// Initialize GL context here if needed
-									gl.endFrameEXP();
+									overflow: "hidden",
+									justifyContent: "center",
+									alignItems: "center",
 								}}
 							>
-								{/* Replace <Image /> with GLImage for brightness */}
-								<GLImage
-									source={{
-										uri: editImage?.uri
-											? editImage.uri
-											: "https://placehold.co/400x400?text=Edit+Image",
+								<img
+									ref={imgRef}
+									src={editImage?.uri ?? ""}
+									style={{
+										display: "none",
 									}}
-									width={editImage?.width ? editImage.width * zoom : 300 * zoom}
-									height={
-										editImage?.height ? editImage.height * zoom : 300 * zoom
-									}
-									brightness={brightnessValue}
-									contrast={contrastValue}
-									saturate={saturateValue}
-									sepia={sepiaValue}
-									hue={hueValue}
-									flipH={flippedHorizontally}
-									flipV={flippedVertically}
-									rotation={selectedTool === "rotate" ? rotationAngle : 0}
-									resizeMode="contain"
-									onLayout={onImageLayout}
+									width={editImage?.width ?? 300}
+									height={editImage?.height ?? 300}
+									onLoad={handleImgLoad}
+									alt=""
 								/>
-							</GLView>
+								<canvas
+									ref={canvasRef}
+									style={{
+										width: editImage?.width
+											? editImage.width * zoom
+											: 300 * zoom,
+										height: editImage?.height
+											? editImage.height * zoom
+											: 300 * zoom,
+										backgroundColor: currTheme.background,
+										borderRadius: 4,
+									}}
+								/>
+							</View>
 
 							{selectedTool === "rotate" && (
 								<View
