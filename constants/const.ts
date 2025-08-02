@@ -1,5 +1,6 @@
-export const Version = "Version: 0.04.03";
+export const Version = "Version: 0.04.04";
 export const ReleaseNote =
+	"2025-08-01 0.04.04 fix some issues, still a known issue: img not reload after apply toneAdj \n" +
 	"2025-07-31 0.04.03 change LG-react to Canvas 2d, known issue: img not reload after apply or click img stake \n" +
 	"2025-07-30 0.04.02 complete hue-rotate adjustments but colors are diff from saved img \n" +
 	"2025-07-29 0.04.01 complete bright, contrast and saturate \n" +

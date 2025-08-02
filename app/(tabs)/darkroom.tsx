@@ -211,56 +211,53 @@ export default function DarkroomScreen() {
 	const handleImageTouchStart = (event: any) => {
 		if (selectedTool !== "crop") return;
 		const { locationX, locationY } = event.nativeEvent;
+		// Convert to image/canvas coordinates
+		const x = Math.max(0, Math.round((locationX - imagePosition.x) / zoom));
+		const y = Math.max(0, Math.round((locationY - imagePosition.y) / zoom));
 		setCropRect({
-			start: {
-				x: Math.max(0, locationX),
-				y: Math.max(0, locationY),
-			},
+			start: { x, y },
 			end: null,
 		});
 		setIsCropping(true);
 	};
 	const handleImageTouchMove = (event: any) => {
-		// Always track mouse moves when cropping, even outside image bounds
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
-
-		// Get mouse position relative to where we started the view
 		const { locationX, locationY } = event.nativeEvent;
+		// Convert to image/canvas coordinates
+		const x = Math.max(0, Math.round((locationX - imagePosition.x) / zoom));
+		const y = Math.max(0, Math.round((locationY - imagePosition.y) / zoom));
 		setCropRect((prev) =>
 			prev
 				? {
 						...prev,
 						end: {
-							x: Math.max(0, Math.min(locationX, imagePosition.width)),
-							y: Math.max(0, Math.min(locationY, imagePosition.height)),
+							x: Math.max(0, Math.min(x, editImage?.width ?? 300)),
+							y: Math.max(0, Math.min(y, editImage?.height ?? 300)),
 						},
 					}
 				: prev
 		);
 	};
 	const handleImageTouchEnd = (event: any) => {
-		// Keep tracking cursor position even when touch/click ends
 		const { locationX, locationY } = event.nativeEvent;
-		setCursorPos({
-			x: Math.max(0, Math.round(locationX / zoom)),
-			y: Math.max(0, Math.round(locationY / zoom)),
-		});
+		const x = Math.max(0, Math.round((locationX - imagePosition.x) / zoom));
+		const y = Math.max(0, Math.round((locationY - imagePosition.y) / zoom));
+		setCursorPos({ x, y });
 
-		// Only do crop handling if we're in crop mode
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
 		setCropRect((prev) =>
 			prev
 				? {
 						...prev,
 						end: {
-							x: Math.max(0, Math.min(locationX, imagePosition.width)),
-							y: Math.max(0, Math.min(locationY, imagePosition.height)),
+							x: Math.max(0, Math.min(x, editImage?.width ?? 300)),
+							y: Math.max(0, Math.min(y, editImage?.height ?? 300)),
 						},
 					}
 				: prev
 		);
 		setIsCropping(false);
-		setModified(true); // Mark as modified after cropping
+		setModified(true);
 	};
 
 	const handleApply = async () => {
@@ -293,12 +290,22 @@ export default function DarkroomScreen() {
 			default:
 				break;
 		}
-
+		console.log(selectedTool, " result:", result?.name, result?.uri);
 		if (result) {
 			setEditImage(result);
 			// Add to image stack with operation
 			const stack = { ...result, operations: selectedTool || "modified" };
 			setImageStack((prev) => [...prev, stack]);
+			// Only reset filter states after image is set
+		}
+
+		if (result && selectedTool === "tone") {
+			setBrightnessValue(1);
+			setContrastValue(1);
+			setSaturateValue(1);
+			setSepiaValue(0);
+			setHueValue(0);
+			setEditImage(result);
 		}
 
 		setModified(false); // Mark as unmodified after applying changes
@@ -345,7 +352,10 @@ export default function DarkroomScreen() {
 			const stack = { ...result, operations: "rotate" };
 			setImageStack((prev) => [...prev, stack]);
 			setRotationAngle(0);
+			return result;
 		}
+
+		return editImage; // Return original image if rotation fails
 	};
 
 	const applyToneAdj = async () => {
@@ -358,18 +368,8 @@ export default function DarkroomScreen() {
 			sepiaValue,
 			hueValue
 		);
-		if (result) {
-			setEditImage(result);
-			// Add to image stack with operation
-			const stack = { ...result, operations: "Tone" };
-			setImageStack((prev) => [...prev, stack]);
-			// Reset all sliders after applying
-			setBrightnessValue(1);
-			setContrastValue(1);
-			setSaturateValue(1);
-			setSepiaValue(0);
-			setHueValue(0);
-		}
+
+		return result ?? editImage;
 	};
 
 	const onImageLayout = (event: any) => {

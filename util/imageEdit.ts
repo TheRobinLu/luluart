@@ -229,7 +229,12 @@ export async function toneAdj(
 				ctx.drawImage(img, 0, 0);
 
 				// Apply filters using CSS filter syntax
-				let filterString = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate}) hue-rotate(${hue + 90}deg) sepia(${sepia})`;
+				let filterString =
+					`brightness(${brightness})  ` +
+					`contrast(${contrast}) ` +
+					`saturate(${saturate}) ` +
+					`hue-rotate(${hue}deg) ` +
+					`sepia(${sepia}) `.trim();
 
 				ctx.filter = filterString;
 
