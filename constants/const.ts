@@ -1,5 +1,6 @@
-export const Version = "Version: 0.04.06";
+export const Version = "Version: 0.04.07";
 export const ReleaseNote =
+	"2025-08-02 0.04.07 Adding ScrollBar for image editor \n" +
 	"2025-08-02 0.04.06 fixed CropRectangle following the image zooming \n" +
 	"2025-08-02 0.04.05 thiner scrollbar,add delete item btn in imgstack \n" +
 	"2025-08-01 0.04.04 fix some issues, still a known issue: img not reload after apply toneAdj \n" +

@@ -542,170 +542,203 @@ export default function DarkroomScreen() {
 				</View>
 			)}
 
-			<View style={viewStyles.editArea}>
-				<View style={viewStyles.editAreaContent}>
-					<View id="image-container" style={viewStyles.imageContainer}>
-						<View
-							id="inner-image-container"
-							style={[
-								viewStyles.innerImageContainer,
-								{
-									width: editImage
-										? editImage.width
-											? editImage.width * zoom
-											: 300 * zoom
-										: 300 * zoom,
-									height: editImage
-										? editImage.height
-											? editImage.height * zoom
-											: 300 * zoom
-										: 300 * zoom,
-									transform: [
-										{
-											translateX: editImage
-												? editImage.width
-													? -(editImage.width * zoom) / 2
-													: -150 * zoom
-												: -150 * zoom,
-										},
-										{
-											translateY: editImage
-												? editImage.height
-													? -(editImage.height * zoom) / 2
-													: -150 * zoom
-												: -150 * zoom,
-										},
-									],
-								},
-							]}
-							onStartShouldSetResponder={() => true}
-							onResponderGrant={handleImageTouchStart}
-							onResponderMove={(event) => {
-								//handleMouseMove(event);
-								handleImageTouchMove(event);
-							}}
-							onResponderRelease={handleImageTouchEnd}
-						>
-							{/* Canvas 2D rendering */}
-							<View
-								style={{
-									width: "100%",
-									height: "100%",
-									overflow: "hidden",
-									justifyContent: "center",
-									alignItems: "center",
-								}}
-							>
-								<img
-									ref={imgRef}
-									src={editImage?.uri ?? ""}
-									style={{
-										display: "none",
-									}}
-									width={editImage?.width ?? 300}
-									height={editImage?.height ?? 300}
-									onLoad={handleImgLoad}
-									alt=""
-								/>
-								<canvas
-									ref={canvasRef}
-									style={{
-										width: editImage?.width
-											? editImage.width * zoom
-											: 300 * zoom,
-										height: editImage?.height
-											? editImage.height * zoom
-											: 300 * zoom,
-										backgroundColor: currTheme.background,
-										borderRadius: 4,
-									}}
-								/>
+			{/* Horizontal scroll bar at the top */}
+			<View>
+				<ScrollView
+					style={[{ flex: 1 }, { marginBottom: 40 }]}
+					contentContainerStyle={{ flexGrow: 1 }}
+					showsVerticalScrollIndicator={true}
+				>
+					<ScrollView
+						contentContainerStyle={{
+							flexGrow: 1,
+							minWidth: 1200,
+							minHeight: 1200,
+						}}
+						horizontal={true}
+						showsHorizontalScrollIndicator={true}
+					>
+						<View id="edit-area" style={viewStyles.editArea}>
+							<View style={viewStyles.editAreaContent}>
+								<View id="image-container" style={viewStyles.imageContainer}>
+									<View
+										id="inner-image-container"
+										style={[
+											viewStyles.innerImageContainer,
+											{
+												width: editImage
+													? editImage.width
+														? editImage.width * zoom
+														: 300 * zoom
+													: 300 * zoom,
+												height: editImage
+													? editImage.height
+														? editImage.height * zoom
+														: 300 * zoom
+													: 300 * zoom,
+												transform: [
+													{
+														translateX: editImage
+															? editImage.width
+																? -(editImage.width * zoom) / 2
+																: -150 * zoom
+															: -150 * zoom,
+													},
+													{
+														translateY: editImage
+															? editImage.height
+																? -(editImage.height * zoom) / 2
+																: -150 * zoom
+															: -150 * zoom,
+													},
+												],
+											},
+										]}
+										onStartShouldSetResponder={() => true}
+										onResponderGrant={handleImageTouchStart}
+										onResponderMove={(event) => {
+											//handleMouseMove(event);
+											handleImageTouchMove(event);
+										}}
+										onResponderRelease={handleImageTouchEnd}
+									>
+										{/* Canvas 2D rendering */}
+										<View
+											style={{
+												width: "100%",
+												height: "100%",
+												overflow: "hidden",
+												justifyContent: "center",
+												alignItems: "center",
+											}}
+										>
+											<img
+												ref={imgRef}
+												src={editImage?.uri ?? ""}
+												style={{
+													display: "none",
+												}}
+												width={editImage?.width ?? 300}
+												height={editImage?.height ?? 300}
+												onLoad={handleImgLoad}
+												alt=""
+											/>
+											<canvas
+												ref={canvasRef}
+												style={{
+													width: editImage?.width
+														? editImage.width * zoom
+														: 300 * zoom,
+													height: editImage?.height
+														? editImage.height * zoom
+														: 300 * zoom,
+													backgroundColor: currTheme.background,
+													borderRadius: 4,
+												}}
+											/>
+										</View>
+
+										{selectedTool === "rotate" && (
+											<View
+												id="rotation-overlay"
+												pointerEvents="none"
+												style={[
+													viewStyles.gridOverlay,
+													{
+														width: editImage
+															? editImage.width * zoom
+															: 300 * zoom,
+														height: editImage
+															? editImage.height * zoom
+															: 300 * zoom,
+													},
+												]}
+											>
+												{/* 2 vertical and 2 horizontal lines for 3x3 grid */}
+												{horizontalGridLines()}
+												{/* Vertical lines */}
+												{verticalGridLines()}
+											</View>
+										)}
+										{/* Crop rectangle overlay */}
+										{selectedTool === "crop" &&
+											cropRect?.start &&
+											cropRect?.end && (
+												<View
+													id="crop-rectangle-overlay"
+													style={[
+														viewStyles.cropRectangle,
+														{
+															left:
+																Math.min(cropRect.start.x, cropRect.end.x) *
+																zoom,
+															top:
+																Math.min(cropRect.start.y, cropRect.end.y) *
+																zoom,
+															width:
+																Math.abs(cropRect.end.x - cropRect.start.x) *
+																zoom,
+															height:
+																Math.abs(cropRect.end.y - cropRect.start.y) *
+																zoom,
+															// left: Math.min(cropRect.start.x, cropRect.end.x),
+															// top: Math.min(cropRect.start.y, cropRect.end.y),
+															// width: Math.abs(cropRect.end.x - cropRect.start.x),
+															// height: Math.abs(cropRect.end.y - cropRect.start.y),
+														},
+													]}
+													pointerEvents="none"
+												/>
+											)}
+									</View>
+								</View>
+								{/* Status bar moved to absolute bottom */}
 							</View>
 
-							{selectedTool === "rotate" && (
-								<View
-									id="rotation-overlay"
-									pointerEvents="none"
-									style={[
-										viewStyles.gridOverlay,
-										{
-											width: editImage ? editImage.width * zoom : 300 * zoom,
-											height: editImage ? editImage.height * zoom : 300 * zoom,
-										},
-									]}
-								>
-									{/* 2 vertical and 2 horizontal lines for 3x3 grid */}
-									{horizontalGridLines()}
-									{/* Vertical lines */}
-									{verticalGridLines()}
-								</View>
-							)}
-							{/* Crop rectangle overlay */}
-							{selectedTool === "crop" && cropRect?.start && cropRect?.end && (
-								<View
-									id="crop-rectangle-overlay"
-									style={[
-										viewStyles.cropRectangle,
-										{
-											left: Math.min(cropRect.start.x, cropRect.end.x) * zoom,
-											top: Math.min(cropRect.start.y, cropRect.end.y) * zoom,
-											width: Math.abs(cropRect.end.x - cropRect.start.x) * zoom,
-											height:
-												Math.abs(cropRect.end.y - cropRect.start.y) * zoom,
-											// left: Math.min(cropRect.start.x, cropRect.end.x),
-											// top: Math.min(cropRect.start.y, cropRect.end.y),
-											// width: Math.abs(cropRect.end.x - cropRect.start.x),
-											// height: Math.abs(cropRect.end.y - cropRect.start.y),
-										},
-									]}
-									pointerEvents="none"
-								/>
-							)}
+							{/* Apply/Cancel buttons */}
 						</View>
-					</View>
-					{/* Status bar moved to absolute bottom */}
-					<View id="status-bar" style={viewStyles.statusBar}>
-						{/* Consolidated status bar with all info in one row */}
-						<View style={viewStyles.statusRowContainer}>
-							<Text style={textStyles.statusValue}>
-								{cursorPos
-									? `X: ${cursorPos.x} Y: ${cursorPos.y}`
-									: "X: 0 Y: 0"}
-							</Text>
+					</ScrollView>
+				</ScrollView>
+				<View id="status-bar" style={viewStyles.statusBar}>
+					{/* Consolidated status bar with all info in one row */}
+					<View style={viewStyles.statusRowContainer}>
+						<Text style={textStyles.statusValue}>
+							{cursorPos
+								? `X: ${Math.round(cursorPos.x)}   Y: ${Math.round(cursorPos.y)}`
+								: "X: 0 Y: 0"}
+						</Text>
 
-							<View style={viewStyles.zoomBarContainer}>
-								<View style={{ flexDirection: "row", alignItems: "center" }}>
-									<Text style={textStyles.statusText}>Zoom: </Text>
-									<Text style={textStyles.zoomValue}>
-										{(zoom * 100).toFixed(0)}%
-									</Text>
-								</View>
-								<Slider
-									style={viewStyles.slider}
-									minimumValue={0.05}
-									maximumValue={3}
-									step={0.1}
-									value={zoom}
-									onValueChange={setZoom}
-									minimumTrackTintColor={currTheme.minSlider}
-									maximumTrackTintColor={currTheme.maxSlider}
-									thumbTintColor={currTheme.tint}
-								/>
-								<Text style={textStyles.zoomValue}>{zoom.toFixed(1)}x</Text>
+						<View style={viewStyles.zoomBarContainer}>
+							<View style={{ flexDirection: "row", alignItems: "center" }}>
+								<Text style={textStyles.statusText}>Zoom: </Text>
+								<Text style={textStyles.zoomValue}>
+									{(zoom * 100).toFixed(0)}%
+								</Text>
 							</View>
-
-							<Text style={textStyles.statusText}>
-								{editImage
-									? editImage.name
-										? `File: ${editImage.name}`
-										: "No file loaded"
-									: "No file loaded"}
-							</Text>
+							<Slider
+								style={viewStyles.slider}
+								minimumValue={0.05}
+								maximumValue={3}
+								step={0.1}
+								value={zoom}
+								onValueChange={setZoom}
+								minimumTrackTintColor={currTheme.minSlider}
+								maximumTrackTintColor={currTheme.maxSlider}
+								thumbTintColor={currTheme.tint}
+							/>
+							<Text style={textStyles.zoomValue}>{zoom.toFixed(1)}x</Text>
 						</View>
+
+						<Text style={textStyles.statusText}>
+							{editImage
+								? editImage.name
+									? `File: ${editImage.name}`
+									: "No file loaded"
+								: "No file loaded"}
+						</Text>
 					</View>
 				</View>
 			</View>
-
 			<View
 				id="toolboxes"
 				style={[viewStyles.toolbox, { width: toolboxWidth }]}
@@ -1126,8 +1159,9 @@ const viewStyles = StyleSheet.create({
 	},
 	statusBar: {
 		position: "absolute",
+		marginTop: 20,
 		bottom: 0,
-		backgroundColor: currTheme.bar,
+		backgroundColor: "rgba(0,0,0,0.3)",
 		left: 0,
 		right: 0,
 		width: "100%",
