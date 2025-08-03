@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
@@ -138,7 +139,6 @@ export default function DarkroomScreen() {
 		saturateValue,
 		sepiaValue,
 		hueValue,
-		zoom,
 		flippedHorizontally,
 		flippedVertically,
 		selectedTool,
@@ -155,8 +155,8 @@ export default function DarkroomScreen() {
 		// Always update cursor position regardless of image bounds
 		// Ensure x and y are never negative
 		setCursorPos({
-			x: Math.max(0, Math.round(locationX / zoom)),
-			y: Math.max(0, Math.round(locationY / zoom)),
+			x: Math.max(0, Math.round(locationX)),
+			y: Math.max(0, Math.round(locationY)),
 		});
 	};
 
@@ -212,8 +212,8 @@ export default function DarkroomScreen() {
 		if (selectedTool !== "crop") return;
 		const { locationX, locationY } = event.nativeEvent;
 		// Convert to image/canvas coordinates
-		const x = Math.max(0, Math.round((locationX - imagePosition.x) / zoom));
-		const y = Math.max(0, Math.round((locationY - imagePosition.y) / zoom));
+		const x = Math.max(0, Math.round(locationX) / zoom);
+		const y = Math.max(0, Math.round(locationY) / zoom);
 		setCropRect({
 			start: { x, y },
 			end: null,
@@ -224,15 +224,31 @@ export default function DarkroomScreen() {
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
 		const { locationX, locationY } = event.nativeEvent;
 		// Convert to image/canvas coordinates
-		const x = Math.max(0, Math.round((locationX - imagePosition.x) / zoom));
-		const y = Math.max(0, Math.round((locationY - imagePosition.y) / zoom));
+		const x = Math.max(0, Math.round(locationX) / zoom);
+		const y = Math.max(0, Math.round(locationY) / zoom);
 		setCropRect((prev) =>
 			prev
 				? {
 						...prev,
 						end: {
-							x: Math.max(0, Math.min(x, editImage?.width ?? 300)),
-							y: Math.max(0, Math.min(y, editImage?.height ?? 300)),
+							x: Math.max(
+								0,
+								Math.min(
+									x,
+									editImage?.width !== undefined
+										? editImage.width * zoom
+										: 300 * zoom
+								)
+							),
+							y: Math.max(
+								0,
+								Math.min(
+									y,
+									editImage?.height !== undefined
+										? editImage.height * zoom
+										: 300 * zoom
+								)
+							),
 						},
 					}
 				: prev
@@ -240,8 +256,8 @@ export default function DarkroomScreen() {
 	};
 	const handleImageTouchEnd = (event: any) => {
 		const { locationX, locationY } = event.nativeEvent;
-		const x = Math.max(0, Math.round((locationX - imagePosition.x) / zoom));
-		const y = Math.max(0, Math.round((locationY - imagePosition.y) / zoom));
+		const x = Math.max(0, Math.round(locationX) / zoom);
+		const y = Math.max(0, Math.round(locationY) / zoom);
 		setCursorPos({ x, y });
 
 		if (selectedTool !== "crop" || !isCropping || !cropRect?.start) return;
@@ -250,8 +266,24 @@ export default function DarkroomScreen() {
 				? {
 						...prev,
 						end: {
-							x: Math.max(0, Math.min(x, editImage?.width ?? 300)),
-							y: Math.max(0, Math.min(y, editImage?.height ?? 300)),
+							x: Math.max(
+								0,
+								Math.min(
+									x,
+									editImage && typeof editImage.width === "number"
+										? editImage.width * zoom
+										: 300 * zoom
+								)
+							),
+							y: Math.max(
+								0,
+								Math.min(
+									y,
+									editImage && typeof editImage.height === "number"
+										? editImage.height * zoom
+										: 300 * zoom
+								)
+							),
 						},
 					}
 				: prev
@@ -299,15 +331,6 @@ export default function DarkroomScreen() {
 			// Only reset filter states after image is set
 		}
 
-		if (result && selectedTool === "tone") {
-			setBrightnessValue(1);
-			setContrastValue(1);
-			setSaturateValue(1);
-			setSepiaValue(0);
-			setHueValue(0);
-			setEditImage(result);
-		}
-
 		setModified(false); // Mark as unmodified after applying changes
 	};
 
@@ -347,10 +370,6 @@ export default function DarkroomScreen() {
 		if (!editImage) return;
 		const result = await rotate(editImage, rotationAngle);
 		if (result) {
-			setEditImage(result);
-			// Add to image stack with operation
-			const stack = { ...result, operations: "rotate" };
-			setImageStack((prev) => [...prev, stack]);
 			setRotationAngle(0);
 			return result;
 		}
@@ -369,7 +388,16 @@ export default function DarkroomScreen() {
 			hueValue
 		);
 
-		return result ?? editImage;
+		if (result) {
+			setBrightnessValue(1);
+			setContrastValue(1);
+			setSaturateValue(1);
+			setSepiaValue(0);
+			setHueValue(0);
+			return result;
+		}
+
+		return editImage;
 	};
 
 	const onImageLayout = (event: any) => {
@@ -395,11 +423,7 @@ export default function DarkroomScreen() {
 				// Handle resize tool selection
 				break;
 			case "tone":
-				setBrightnessValue(1);
-				setContrastValue(1);
-				setSaturateValue(1);
-				setSepiaValue(0);
-				setHueValue(0);
+
 			default:
 				break;
 		}
@@ -436,6 +460,10 @@ export default function DarkroomScreen() {
 		setImageStack([]);
 	};
 
+	const handleDeleteStackItem = (index: number) => {
+		setImageStack((prev) => prev.filter((_, i) => i !== index));
+	};
+
 	return (
 		<View style={viewStyles.container}>
 			{/* Image stack thumbnails - now on the left side */}
@@ -447,6 +475,7 @@ export default function DarkroomScreen() {
 						contentContainerStyle={viewStyles.imageStackScrollContent}
 						showsVerticalScrollIndicator={true}
 						indicatorStyle="black" // dark style for iOS
+						//scrollbarSize={8} // thinner scrollbar
 					>
 						{imageStack.map((item, index) => (
 							<Pressable
@@ -473,9 +502,40 @@ export default function DarkroomScreen() {
 									style={imageStyles.imageStackThumb}
 									resizeMode="contain"
 								/>
-								<Text style={textStyles.imageStackOperation}>
-									{item.operations}
-								</Text>
+								<View
+									style={{
+										flexDirection: "row",
+										//alignItems: "center",
+										//justifyContent: "space-between",
+										width: "100%",
+									}}
+								>
+									<Text
+										id="image-stack-operation"
+										style={[
+											textStyles.imageStackOperation,
+											{ alignItems: "flex-start" },
+										]}
+									>
+										{item.operations}
+									</Text>
+									<View style={{ flex: 1 }} />
+									<Pressable
+										id="delete-stack-item"
+										onPress={() => handleDeleteStackItem(index)}
+										style={{
+											marginLeft: 4,
+											paddingHorizontal: 6,
+											paddingVertical: 2,
+											borderRadius: 4,
+											alignItems: "flex-end",
+										}}
+									>
+										<Text style={{ color: currTheme.text, fontWeight: "bold" }}>
+											X
+										</Text>
+									</Pressable>
+								</View>
 							</Pressable>
 						))}
 					</ScrollView>
@@ -521,7 +581,7 @@ export default function DarkroomScreen() {
 							onStartShouldSetResponder={() => true}
 							onResponderGrant={handleImageTouchStart}
 							onResponderMove={(event) => {
-								handleMouseMove(event);
+								//handleMouseMove(event);
 								handleImageTouchMove(event);
 							}}
 							onResponderRelease={handleImageTouchEnd}
@@ -564,6 +624,7 @@ export default function DarkroomScreen() {
 
 							{selectedTool === "rotate" && (
 								<View
+									id="rotation-overlay"
 									pointerEvents="none"
 									style={[
 										viewStyles.gridOverlay,
@@ -582,13 +643,19 @@ export default function DarkroomScreen() {
 							{/* Crop rectangle overlay */}
 							{selectedTool === "crop" && cropRect?.start && cropRect?.end && (
 								<View
+									id="crop-rectangle-overlay"
 									style={[
 										viewStyles.cropRectangle,
 										{
-											left: Math.min(cropRect.start.x, cropRect.end.x),
-											top: Math.min(cropRect.start.y, cropRect.end.y),
-											width: Math.abs(cropRect.end.x - cropRect.start.x),
-											height: Math.abs(cropRect.end.y - cropRect.start.y),
+											left: Math.min(cropRect.start.x, cropRect.end.x) * zoom,
+											top: Math.min(cropRect.start.y, cropRect.end.y) * zoom,
+											width: Math.abs(cropRect.end.x - cropRect.start.x) * zoom,
+											height:
+												Math.abs(cropRect.end.y - cropRect.start.y) * zoom,
+											// left: Math.min(cropRect.start.x, cropRect.end.x),
+											// top: Math.min(cropRect.start.y, cropRect.end.y),
+											// width: Math.abs(cropRect.end.x - cropRect.start.x),
+											// height: Math.abs(cropRect.end.y - cropRect.start.y),
 										},
 									]}
 									pointerEvents="none"
@@ -1312,11 +1379,10 @@ const textStyles = StyleSheet.create({
 	imageStackOperation: {
 		position: "absolute",
 		bottom: 2,
-		left: 2,
-		right: 2,
+		paddingHorizontal: 4,
 		color: currTheme.text,
 		fontSize: 12,
-		textAlign: "center",
+		textAlign: "left",
 		backgroundColor: "rgba(0, 0, 0, 0.2)",
 		paddingVertical: 2,
 		borderRadius: 4,
