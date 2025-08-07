@@ -25,6 +25,7 @@ declare global {
 		showDirectoryPicker?: () => Promise<any>;
 	}
 }
+
 export default function DarkroomScreen() {
 	//const [hovered, setHovered] = useState<string | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -79,6 +80,8 @@ export default function DarkroomScreen() {
 	const [saturateValue, setSaturateValue] = useState(1);
 	const [sepiaValue, setSepiaValue] = useState(0);
 	const [hueValue, setHueValue] = useState(0);
+	const [editAreaWidth, setEditAreaWidth] = useState(1200);
+	const [editAreaHeight, setEditAreaHeight] = useState(1200);
 
 	const [imagePosition, setImagePosition] = useState({
 		x: 0,
@@ -86,6 +89,22 @@ export default function DarkroomScreen() {
 		width: 0,
 		height: 0,
 	});
+
+	//when resize browser window, get width and height of the window
+	useEffect(() => {
+		const handleResize = () => {
+			const width = window.innerWidth;
+			const height = window.innerHeight;
+			setEditAreaWidth(width - toolboxWidth - 100); // 20px padding
+			setEditAreaHeight(height - 40);
+			console.log("Window resized:", width, height);
+		};
+
+		window.addEventListener("resize", handleResize);
+		return () => {
+			window.removeEventListener("resize", handleResize);
+		};
+	}, []);
 
 	// Draw image to canvas whenever image/filter/zoom changes
 	useEffect(() => {
@@ -468,7 +487,7 @@ export default function DarkroomScreen() {
 		<View style={viewStyles.container}>
 			{/* Image stack thumbnails - now on the left side */}
 			{imageStack.length > 0 && (
-				<View style={viewStyles.imageStackContainer}>
+				<View id="image-stack" style={viewStyles.imageStackContainer}>
 					<Text style={textStyles.stackHeader}>History</Text>
 					<ScrollView
 						style={viewStyles.imageStackScroll}
@@ -543,17 +562,20 @@ export default function DarkroomScreen() {
 			)}
 
 			{/* Horizontal scroll bar at the top */}
-			<View>
+			<View style={{ width: editAreaWidth, height: editAreaHeight }}>
 				<ScrollView
 					style={[{ flex: 1 }, { marginBottom: 40 }]}
-					contentContainerStyle={{ flexGrow: 1 }}
+					contentContainerStyle={{
+						flexGrow: 1,
+						//minWidth: editAreaWidth,
+						minHeight: editAreaHeight * zoom,
+					}}
 					showsVerticalScrollIndicator={true}
 				>
 					<ScrollView
 						contentContainerStyle={{
 							flexGrow: 1,
-							minWidth: 1200,
-							minHeight: 1200,
+							minWidth: editAreaWidth * zoom,
 						}}
 						horizontal={true}
 						showsHorizontalScrollIndicator={true}
