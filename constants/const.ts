@@ -1,6 +1,6 @@
 export const Version = "Version: 0.04.08";
 export const ReleaseNote =
-	"2025-08-06  \n" +
+	"2025-08-06 0.04.08 fixed ScrollBar and edit area width and hight \n" +
 	"2025-08-02 0.04.07 Adding ScrollBar for image editor \n" +
 	"2025-08-02 0.04.06 fixed CropRectangle following the image zooming \n" +
 	"2025-08-02 0.04.05 thiner scrollbar,add delete item btn in imgstack \n" +
