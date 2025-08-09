@@ -1,5 +1,7 @@
-export const Version = "Version: 0.05.02";
+export const Version = "Version: 0.05.04";
 export const ReleaseNote =
+	"2025-08-09 0.05.04 show releaseNote\n" +
+	"2025-08-09 0.05.03 remove crop after rotate\n" +
 	"2025-08-09 0.05.02 if no image stack, adjust edit area width\n" +
 	"2025-08-08 0.05.01 Add language selection \n" +
 	"2025-08-06 0.04.08 fixed ScrollBar and edit area width and hight \n" +
@@ -37,7 +39,8 @@ export const knownIssues = [
 		describe: "Crop after rotate is not correct",
 		foundVer: "0.04.04",
 		suggest: "Please reload the app to see the changes.",
-		fixedVer: "None",
+		solution: "Remove Crop after Rotate",
+		fixedVer: "0.05.03",
 	},
 ];
 export const AppName = "LuluArt";

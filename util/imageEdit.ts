@@ -95,37 +95,35 @@ export async function rotate(
 		compress: 0.9,
 	});
 
-	if (rotatedImage.uri) {
-		const cropRotate = getCropAfterRotation(image.width, image.height, angle);
+	// if (rotatedImage.uri) {
+	// 	const cropRotate = getCropAfterRotation(image.width, image.height, angle);
 
-		let newImage = {
-			uri: rotatedImage.uri,
+	// 	let newImage = {
+	// 		uri: rotatedImage.uri,
+	// 		name: image.name,
+	// 		width: rotatedImage.width,
+	// 		height: rotatedImage.height,
+	// 	};
+
+	// 	const croppedImage = await crop(
+	// 		newImage,
+	// 		cropRotate.X,
+	// 		cropRotate.Y,
+	// 		cropRotate.width,
+	// 		cropRotate.height
+	// 	);
+
+	if (rotatedImage) {
+		const retImage: IImageContext = {
+			uri: rotatedImage.uri || "",
 			name: image.name,
 			width: rotatedImage.width,
 			height: rotatedImage.height,
+			operations: "rotate",
 		};
-
-		const croppedImage = await crop(
-			newImage,
-			cropRotate.X,
-			cropRotate.Y,
-			cropRotate.width,
-			cropRotate.height
-		);
-
-		if (croppedImage) {
-			const retImage: IImageContext = {
-				uri: croppedImage.uri || "",
-				name: image.name,
-				width: croppedImage.width,
-				height: croppedImage.height,
-				operations: "rotate",
-			};
-			return retImage;
-		}
-
-		return image;
+		return retImage;
 	}
+
 	return image;
 }
 

@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
+import ReleaseNoteModal from "@/components/ReleaseNote";
+
 import getText from "@/constants/dictionary";
 import { cropByPoints, flipH, flipV, rotate, toneAdj } from "@/util/imageEdit";
 import { storeLanguage } from "@/util/language";
@@ -47,8 +49,8 @@ export default function DarkroomScreen() {
 
 	const ICON_SIZE = 42;
 	const ICON_MARGIN = 6;
-	const MIN_ICONS = 3;
-	const MAX_ICONS = 6;
+	// const MIN_ICONS = 3;
+	// const MAX_ICONS = 6;
 
 	// Calculate width for exactly 6 tool icons
 	const toolboxWidth = ICON_SIZE * 6 + ICON_MARGIN * 5 + 24; // 6 icons, 5 margins, 24px padding
@@ -92,6 +94,23 @@ export default function DarkroomScreen() {
 		width: 0,
 		height: 0,
 	});
+
+	// Language state
+	const [lang, setLang] = useState<string>(
+		() => fetchLanguage() || getSysLanguage()
+	);
+
+	// Release note modal state
+	const [releaseNoteVisible, setReleaseNoteVisible] = useState(false);
+	const lastTap = useRef<number>(0);
+
+	// const handleVersionPress = () => {
+	// 	const now = Date.now();
+	// 	if (lastTap.current && now - lastTap.current < 300) {
+	// 		setReleaseNoteVisible(true);
+	// 	}
+	// 	lastTap.current = now;
+	// };
 
 	//when resize browser window, get width and height of the window
 	useEffect(() => {
@@ -491,6 +510,14 @@ export default function DarkroomScreen() {
 		storeLanguage(newLang);
 	};
 
+	const handleVersionPress = () => {
+		const now = Date.now();
+		if (lastTap.current && now - lastTap.current < 500) {
+			setReleaseNoteVisible(true);
+		}
+		lastTap.current = now;
+	};
+
 	return (
 		<View style={viewStyles.container}>
 			{/* Image stack thumbnails - now on the left side */}
@@ -711,10 +738,6 @@ export default function DarkroomScreen() {
 															height:
 																Math.abs(cropRect.end.y - cropRect.start.y) *
 																zoom,
-															// left: Math.min(cropRect.start.x, cropRect.end.x),
-															// top: Math.min(cropRect.start.y, cropRect.end.y),
-															// width: Math.abs(cropRect.end.x - cropRect.start.x),
-															// height: Math.abs(cropRect.end.y - cropRect.start.y),
 														},
 													]}
 													pointerEvents="none"
@@ -784,7 +807,9 @@ export default function DarkroomScreen() {
 						resizeMode="contain"
 					/>
 					<View style={{ flexDirection: "row", alignItems: "center" }}>
-						<Text style={textStyles.versionText}>{Version}</Text>
+						<Pressable onPress={handleVersionPress}>
+							<Text style={textStyles.versionText}>{Version}</Text>
+						</Pressable>
 						{/* Language buttons */}
 						<Pressable
 							onPress={() => handleLangChange("EN")}
@@ -1134,6 +1159,10 @@ export default function DarkroomScreen() {
 					</Pressable>
 				</View>
 			</View>
+			<ReleaseNoteModal
+				visible={releaseNoteVisible}
+				onClose={() => setReleaseNoteVisible(false)}
+			/>
 		</View>
 	);
 }
@@ -1230,13 +1259,13 @@ const viewStyles = StyleSheet.create({
 	},
 	statusBar: {
 		position: "absolute",
-		margin: 8,
+		margin: 0,
 		bottom: 0,
 		backgroundColor: "rgba(0,0,0,0.3)",
 		left: 0,
 		right: 0,
 		width: "100%",
-		paddingVertical: 4,
+		paddingVertical: 0,
 		paddingHorizontal: 8,
 	},
 	statusRowContainer: {
@@ -1244,11 +1273,12 @@ const viewStyles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		width: "100%",
+		height: 32,
 	},
 	statusItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 2,
+		padding: 0,
 		flex: 0, // Don't let items take more space than needed
 	},
 	statusDivider: {
@@ -1266,7 +1296,7 @@ const viewStyles = StyleSheet.create({
 	},
 	slider: {
 		width: 120, // Fixed width for better control
-		height: 20,
+		height: 32,
 		marginHorizontal: 8,
 	},
 	spacer: {
