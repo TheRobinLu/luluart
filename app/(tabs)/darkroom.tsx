@@ -18,6 +18,12 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { baseColors, currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
+import getText from "../../constants/dictionary";
+import {
+	fetchLanguage,
+	getSysLanguage,
+	storeLanguage,
+} from "../../util/language";
 import { browseImageFile } from "../../util/sysfile"; // adjust path if needed
 
 declare global {
@@ -89,6 +95,11 @@ export default function DarkroomScreen() {
 		width: 0,
 		height: 0,
 	});
+
+	// Language state
+	const [lang, setLang] = useState<string>(
+		() => fetchLanguage() || getSysLanguage()
+	);
 
 	//when resize browser window, get width and height of the window
 	useEffect(() => {
@@ -483,12 +494,17 @@ export default function DarkroomScreen() {
 		setImageStack((prev) => prev.filter((_, i) => i !== index));
 	};
 
+	const handleLangChange = (newLang: string) => {
+		setLang(newLang);
+		storeLanguage(newLang);
+	};
+
 	return (
 		<View style={viewStyles.container}>
 			{/* Image stack thumbnails - now on the left side */}
 			{imageStack.length > 0 && (
 				<View id="image-stack" style={viewStyles.imageStackContainer}>
-					<Text style={textStyles.stackHeader}>History</Text>
+					<Text style={textStyles.stackHeader}>{getText(lang, "History")}</Text>
 					<ScrollView
 						style={viewStyles.imageStackScroll}
 						contentContainerStyle={viewStyles.imageStackScrollContent}
@@ -536,7 +552,7 @@ export default function DarkroomScreen() {
 											{ alignItems: "flex-start" },
 										]}
 									>
-										{item.operations}
+										{getText(lang, item.operations || "")}
 									</Text>
 									<View style={{ flex: 1 }} />
 									<Pressable
@@ -732,7 +748,9 @@ export default function DarkroomScreen() {
 
 						<View style={viewStyles.zoomBarContainer}>
 							<View style={{ flexDirection: "row", alignItems: "center" }}>
-								<Text style={textStyles.statusText}>Zoom: </Text>
+								<Text style={textStyles.statusText}>
+									{getText(lang, "Zoom")}:{" "}
+								</Text>
 								<Text style={textStyles.zoomValue}>
 									{(zoom * 100).toFixed(0)}%
 								</Text>
@@ -754,9 +772,9 @@ export default function DarkroomScreen() {
 						<Text style={textStyles.statusText}>
 							{editImage
 								? editImage.name
-									? `File: ${editImage.name}`
-									: "No file loaded"
-								: "No file loaded"}
+									? `${getText(lang, "File: ")}${editImage.name}`
+									: getText(lang, "No file loaded")
+								: getText(lang, "No file loaded")}
 						</Text>
 					</View>
 				</View>
@@ -773,11 +791,50 @@ export default function DarkroomScreen() {
 						style={imageStyles.logoImage}
 						resizeMode="contain"
 					/>
-					<Text style={textStyles.versionText}>{Version}</Text>
+					<View style={{ flexDirection: "row", alignItems: "center" }}>
+						<Text style={textStyles.versionText}>{Version}</Text>
+						{/* Language buttons */}
+						<Pressable
+							onPress={() => handleLangChange("EN")}
+							style={{
+								marginLeft: 8,
+								paddingHorizontal: 8,
+							}}
+						>
+							<Text
+								style={{
+									color:
+										lang === "EN" ? currTheme.text : currTheme.btnfaceSelected,
+									fontSize: 10,
+									fontWeight: lang === "EN" ? "bold" : "normal",
+								}}
+							>
+								EN
+							</Text>
+						</Pressable>
+						<Pressable
+							onPress={() => handleLangChange("CN")}
+							style={{
+								marginLeft: 4,
+								paddingHorizontal: 8,
+							}}
+						>
+							<Text
+								style={{
+									color:
+										lang === "CN" ? currTheme.text : currTheme.btnfaceSelected,
+									fontSize: 10,
+									fontWeight: lang === "CN" ? "bold" : "normal",
+								}}
+							>
+								中文
+							</Text>
+						</Pressable>
+					</View>
 				</View>
 
 				<View id="file-box" style={viewStyles.fileBox}>
-					<Text style={textStyles.toolboxTitle}>File</Text>
+					<Text style={textStyles.toolboxTitle}>{getText(lang, "File")}</Text>
 					<View style={viewStyles.iconRow}>
 						{fileIcons.map((item) => (
 							<Pressable
@@ -807,7 +864,7 @@ export default function DarkroomScreen() {
 													{ color: currTheme.btntext },
 												]}
 											>
-												{item.label}
+												{getText(lang, item.label)}
 											</Text>
 										)}
 									</>
@@ -816,7 +873,7 @@ export default function DarkroomScreen() {
 						))}
 					</View>
 				</View>
-				<Text style={textStyles.toolboxTitle}>Toolbox</Text>
+				<Text style={textStyles.toolboxTitle}>{getText(lang, "Toolbox")}</Text>
 				<View id="toolbox" style={viewStyles.iconRow}>
 					{toolIcons.map((item) => {
 						const isSelected = selectedTool === item.key;
@@ -852,7 +909,7 @@ export default function DarkroomScreen() {
 														: textStyles.unselectedToolText,
 												]}
 											>
-												{item.label}
+												{getText(lang, item.label)}
 											</Text>
 										)}
 									</>
@@ -1070,7 +1127,7 @@ export default function DarkroomScreen() {
 							handleApply();
 						}}
 					>
-						<Text style={textStyles.buttonText}>Apply</Text>
+						<Text style={textStyles.buttonText}>{getText(lang, "Apply")}</Text>
 					</Pressable>
 					<Pressable
 						style={({ hovered }) => [
@@ -1081,7 +1138,7 @@ export default function DarkroomScreen() {
 							handleCancel();
 						}}
 					>
-						<Text style={textStyles.buttonText}>Cancel</Text>
+						<Text style={textStyles.buttonText}>{getText(lang, "Cancel")}</Text>
 					</Pressable>
 				</View>
 			</View>
@@ -1181,7 +1238,7 @@ const viewStyles = StyleSheet.create({
 	},
 	statusBar: {
 		position: "absolute",
-		marginTop: 20,
+		margin: 8,
 		bottom: 0,
 		backgroundColor: "rgba(0,0,0,0.3)",
 		left: 0,
@@ -1384,11 +1441,13 @@ const textStyles = StyleSheet.create({
 	iconLabel: {
 		color: currTheme.btntext,
 		marginLeft: 10,
-		fontSize: 15,
+		fontSize: 12,
 		fontWeight: "500",
 		position: "absolute",
 		top: ICON_SIZE + 2,
 		left: 0,
+		minWidth: 40,
+		textAlign: "center",
 		backgroundColor: currTheme.background,
 		paddingHorizontal: 6,
 		paddingVertical: 2,
@@ -1445,8 +1504,9 @@ const textStyles = StyleSheet.create({
 	},
 	versionText: {
 		marginBottom: 8,
+		padding: 4,
 		color: currTheme.text,
-		fontSize: 10,
+		fontSize: 12,
 		textAlign: "center",
 	},
 	statusLabel: {
