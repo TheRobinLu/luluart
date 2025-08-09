@@ -1,7 +1,7 @@
 export function storeLanguage(lang: string) {
 	try {
 		localStorage.setItem("LuluArtLanguage", lang);
-	} catch (e) {
+	} catch {
 		// Ignore storage errors
 	}
 }
@@ -9,7 +9,7 @@ export function storeLanguage(lang: string) {
 export function fetchLanguage(): string | null {
 	try {
 		return localStorage.getItem("LuluArtLanguage");
-	} catch (e) {
+	} catch {
 		return null;
 	}
 }

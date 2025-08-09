@@ -106,7 +106,8 @@ export default function DarkroomScreen() {
 		const handleResize = () => {
 			const width = window.innerWidth;
 			const height = window.innerHeight;
-			setEditAreaWidth(width - toolboxWidth - 100); // 20px padding
+			const hasImageStack = imageStack.length > 0;
+			setEditAreaWidth(width - toolboxWidth - (hasImageStack ? 100 : 0));
 			setEditAreaHeight(height - 40);
 			console.log("Window resized:", width, height);
 		};
@@ -115,7 +116,7 @@ export default function DarkroomScreen() {
 		return () => {
 			window.removeEventListener("resize", handleResize);
 		};
-	}, []);
+	}, [imageStack.length]); // recalc when imageStack appears/disappears
 
 	// Draw image to canvas whenever image/filter/zoom changes
 	useEffect(() => {
@@ -147,7 +148,7 @@ export default function DarkroomScreen() {
 				brightness(${brightnessValue})
 				contrast(${contrastValue})
 				saturate(${saturateValue})
-				hue-rotate(${hueValue}deg)
+				hue-rotate(${hueValue}deg) 
 				sepia(${sepiaValue})
 			`.replace(/\s+/g, " ");
 
@@ -578,7 +579,12 @@ export default function DarkroomScreen() {
 			)}
 
 			{/* Horizontal scroll bar at the top */}
-			<View style={{ width: editAreaWidth, height: editAreaHeight }}>
+			<View
+				style={{
+					width: editAreaWidth,
+					height: editAreaHeight,
+				}}
+			>
 				<ScrollView
 					style={[{ flex: 1 }, { marginBottom: 40 }]}
 					contentContainerStyle={{
