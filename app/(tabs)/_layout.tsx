@@ -21,13 +21,29 @@ export default function TabLayout() {
 					ios: {
 						// Use a transparent background on iOS to show the blur effect
 						position: "absolute",
-						height: 36, // reduced height
+						height: 32, // reduced height
+						paddingVertical: 0,
+						marginVertical: 0,
 					},
 					default: {
-						height: 36, // reduced height
+						height: 32, // reduced height
+						paddingVertical: 0,
+						marginVertical: 0,
 					},
 				}),
+				tabBarItemStyle: {
+					paddingVertical: 0,
+					marginVertical: 0,
+					paddingHorizontal: 4,
+					marginHorizontal: 0,
+					minHeight: 32,
+				},
 				tabBarLabelPosition: "beside-icon", // Move labels beside icons (closest to "top" for bottom tabs)
+				tabBarLabelStyle: {
+					margin: 0,
+					padding: 0,
+					fontSize: 12,
+				},
 			}}
 		>
 			<Tabs.Screen

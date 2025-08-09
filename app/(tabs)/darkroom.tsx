@@ -52,8 +52,8 @@ export default function DarkroomScreen() {
 
 	const ICON_SIZE = 42;
 	const ICON_MARGIN = 6;
-	const MIN_ICONS = 3;
-	const MAX_ICONS = 6;
+	// const MIN_ICONS = 3;
+	// const MAX_ICONS = 6;
 
 	// Calculate width for exactly 6 tool icons
 	const toolboxWidth = ICON_SIZE * 6 + ICON_MARGIN * 5 + 24; // 6 icons, 5 margins, 24px padding
@@ -1244,13 +1244,13 @@ const viewStyles = StyleSheet.create({
 	},
 	statusBar: {
 		position: "absolute",
-		margin: 8,
+		margin: 0,
 		bottom: 0,
 		backgroundColor: "rgba(0,0,0,0.3)",
 		left: 0,
 		right: 0,
 		width: "100%",
-		paddingVertical: 4,
+		paddingVertical: 0,
 		paddingHorizontal: 8,
 	},
 	statusRowContainer: {
@@ -1258,11 +1258,12 @@ const viewStyles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		width: "100%",
+		height: 32,
 	},
 	statusItem: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 2,
+		padding: 0,
 		flex: 0, // Don't let items take more space than needed
 	},
 	statusDivider: {
@@ -1280,7 +1281,7 @@ const viewStyles = StyleSheet.create({
 	},
 	slider: {
 		width: 120, // Fixed width for better control
-		height: 20,
+		height: 32,
 		marginHorizontal: 8,
 	},
 	spacer: {
