@@ -302,7 +302,7 @@ function getsaveFormat(imageType: string): SaveFormat {
 	}
 }
 
-function getCropAfterRotation(
+export function getCropAfterRotation(
 	originalWidth: number,
 	originalHeight: number,
 	degrees: number

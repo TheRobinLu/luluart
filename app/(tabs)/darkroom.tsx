@@ -27,6 +27,8 @@ import {
 } from "../../util/language";
 import { browseImageFile } from "../../util/sysfile"; // adjust path if needed
 
+const statusBarHeight = 34; // Adjust based on your app's status bar height
+
 declare global {
 	interface Window {
 		showDirectoryPicker?: () => Promise<any>;
@@ -87,8 +89,8 @@ export default function DarkroomScreen() {
 	const [saturateValue, setSaturateValue] = useState(1);
 	const [sepiaValue, setSepiaValue] = useState(0);
 	const [hueValue, setHueValue] = useState(0);
-	const [editAreaWidth, setEditAreaWidth] = useState(1200);
-	const [editAreaHeight, setEditAreaHeight] = useState(1200);
+	const [editAreaWidth, setEditAreaWidth] = useState(1440);
+	const [editAreaHeight, setEditAreaHeight] = useState(768);
 
 	const [imagePosition, setImagePosition] = useState({
 		x: 0,
@@ -121,7 +123,7 @@ export default function DarkroomScreen() {
 			const height = window.innerHeight;
 			const hasImageStack = imageStack.length > 0;
 			setEditAreaWidth(width - toolboxWidth - (hasImageStack ? 100 : 0));
-			setEditAreaHeight(height - 40);
+			setEditAreaHeight(height - 34);
 			console.log("Window resized:", width, height);
 		};
 
@@ -607,7 +609,7 @@ export default function DarkroomScreen() {
 				}}
 			>
 				<ScrollView
-					style={[{ flex: 1 }, { marginBottom: 40 }]}
+					style={[{ flex: 1 }, { marginBottom: statusBarHeight }]}
 					contentContainerStyle={{
 						flexGrow: 1,
 						//minWidth: editAreaWidth,
@@ -1281,7 +1283,7 @@ const viewStyles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "space-between",
 		width: "100%",
-		height: 32,
+		height: statusBarHeight,
 	},
 	statusItem: {
 		flexDirection: "row",

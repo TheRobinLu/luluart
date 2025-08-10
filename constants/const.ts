@@ -1,5 +1,6 @@
-export const Version = "Version: 0.05.04";
+export const Version = "Version: 0.05.05";
 export const ReleaseNote =
+	"2025-08-10 0.05.05 Status Bar & edit img layout\n" +
 	"2025-08-09 0.05.04 show releaseNote\n" +
 	"2025-08-09 0.05.03 remove crop after rotate\n" +
 	"2025-08-09 0.05.02 if no image stack, adjust edit area width\n" +

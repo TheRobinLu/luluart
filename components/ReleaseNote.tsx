@@ -1,4 +1,4 @@
-import { Colors } from "@/constants/Colors";
+import { Colors, baseColors } from "@/constants/Colors";
 import { ReleaseNote, Version } from "@/constants/const";
 import React from "react";
 import {
@@ -50,10 +50,10 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	container: {
-		backgroundColor: Colors.dark.background, // replaces #fff
+		backgroundColor: baseColors.stone_900, // replaces #fff
 		borderRadius: 12,
-		padding: 20,
-		width: "85%",
+		padding: 30,
+		width: "50%",
 		maxHeight: "80%",
 	},
 	title: {
@@ -72,17 +72,18 @@ const styles = StyleSheet.create({
 	},
 	notes: {
 		fontSize: 13,
-		color: Colors.dark.text, // replaces #333
+		color: baseColors.stone_300, // replaces #333
 	},
 	closeBtn: {
 		alignSelf: "center",
 		paddingVertical: 8,
 		paddingHorizontal: 24,
-		backgroundColor: Colors.dark.background, // replaces #eee
+		backgroundColor: baseColors.stone_500, // replaces #eee
 		borderRadius: 8,
 	},
 	closeText: {
 		fontSize: 16,
-		color: Colors.dark.text, // replaces #333
+		color: baseColors.stone_800, // replaces #333
+		fontWeight: "bold",
 	},
 });

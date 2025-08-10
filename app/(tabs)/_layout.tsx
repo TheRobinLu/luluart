@@ -26,7 +26,7 @@ export default function TabLayout() {
 						marginVertical: 0,
 					},
 					default: {
-						height: 32, // reduced height
+						height: 36, // reduced height
 						paddingVertical: 0,
 						marginVertical: 0,
 					},
@@ -42,7 +42,7 @@ export default function TabLayout() {
 				tabBarLabelStyle: {
 					margin: 0,
 					padding: 0,
-					fontSize: 12,
+					fontSize: 11,
 				},
 			}}
 		>
@@ -51,7 +51,7 @@ export default function TabLayout() {
 				options={{
 					title: "Home",
 					tabBarIcon: ({ color }) => (
-						<Ionicons name="home" size={24} color={color} />
+						<Ionicons name="home" size={20} color={color} />
 					),
 				}}
 			/>
@@ -60,7 +60,7 @@ export default function TabLayout() {
 				options={{
 					title: "DarkRoom",
 					tabBarIcon: ({ color }) => (
-						<Ionicons name="sparkles" size={24} color={color} />
+						<Ionicons name="sparkles" size={20} color={color} />
 					),
 				}}
 			/>{" "}
@@ -69,7 +69,7 @@ export default function TabLayout() {
 				options={{
 					title: "ImageViewer",
 					tabBarIcon: ({ color }) => (
-						<Ionicons name="images" size={24} color={color} />
+						<Ionicons name="images" size={20} color={color} />
 					),
 				}}
 			/>
