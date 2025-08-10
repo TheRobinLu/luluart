@@ -3,7 +3,10 @@
 //import { crop } from "@/util/imageEdit";
 import { IImageContext } from "@/app/interface/interface";
 import ReleaseNoteModal from "@/components/ReleaseNote";
+
+import getText from "@/constants/dictionary";
 import { cropByPoints, flipH, flipV, rotate, toneAdj } from "@/util/imageEdit";
+import { fetchLanguage, getSysLanguage, storeLanguage } from "@/util/language";
 import Slider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
@@ -19,12 +22,6 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { baseColors, currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
-import getText from "../../constants/dictionary";
-import {
-	fetchLanguage,
-	getSysLanguage,
-	storeLanguage,
-} from "../../util/language";
 import { browseImageFile } from "../../util/sysfile"; // adjust path if needed
 
 const statusBarHeight = 34; // Adjust based on your app's status bar height
@@ -34,7 +31,6 @@ declare global {
 		showDirectoryPicker?: () => Promise<any>;
 	}
 }
-
 export default function DarkroomScreen() {
 	//const [hovered, setHovered] = useState<string | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -131,7 +127,7 @@ export default function DarkroomScreen() {
 		return () => {
 			window.removeEventListener("resize", handleResize);
 		};
-	}, [imageStack.length]); // recalc when imageStack appears/disappears
+	}, []);
 
 	// Draw image to canvas whenever image/filter/zoom changes
 	useEffect(() => {
@@ -528,7 +524,7 @@ export default function DarkroomScreen() {
 			{/* Image stack thumbnails - now on the left side */}
 			{imageStack.length > 0 && (
 				<View id="image-stack" style={viewStyles.imageStackContainer}>
-					<Text style={textStyles.stackHeader}>{getText(lang, "History")}</Text>
+					<Text style={textStyles.stackHeader}>History</Text>
 					<ScrollView
 						style={viewStyles.imageStackScroll}
 						contentContainerStyle={viewStyles.imageStackScrollContent}
@@ -602,12 +598,7 @@ export default function DarkroomScreen() {
 			)}
 
 			{/* Horizontal scroll bar at the top */}
-			<View
-				style={{
-					width: editAreaWidth,
-					height: editAreaHeight,
-				}}
-			>
+			<View style={{ width: editAreaWidth, height: editAreaHeight }}>
 				<ScrollView
 					style={[{ flex: 1 }, { marginBottom: statusBarHeight }]}
 					contentContainerStyle={{
