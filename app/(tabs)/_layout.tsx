@@ -21,18 +21,46 @@ export default function TabLayout() {
 					ios: {
 						// Use a transparent background on iOS to show the blur effect
 						position: "absolute",
+						height: 32, // reduced height
+						paddingVertical: 0,
+						marginVertical: 0,
 					},
-					default: {},
+					default: {
+						height: 32, // reduced height
+						paddingVertical: 0,
+						marginVertical: 0,
+					},
 				}),
+				tabBarItemStyle: {
+					paddingVertical: 0,
+					marginVertical: 0,
+					paddingHorizontal: 4,
+					marginHorizontal: 0,
+					minHeight: 32,
+				},
 				tabBarLabelPosition: "beside-icon", // Move labels beside icons (closest to "top" for bottom tabs)
+				tabBarLabelStyle: {
+					margin: 0,
+					padding: 0,
+					fontSize: 12,
+				},
 			}}
 		>
+			<Tabs.Screen
+				name="index"
+				options={{
+					title: "Home",
+					tabBarIcon: ({ color }) => (
+						<Ionicons name="home" size={24} color={color} />
+					),
+				}}
+			/>
 			<Tabs.Screen
 				name="darkroom"
 				options={{
 					title: "DarkRoom",
 					tabBarIcon: ({ color }) => (
-						<Ionicons name="sparkles" size={28} color={color} />
+						<Ionicons name="sparkles" size={24} color={color} />
 					),
 				}}
 			/>{" "}
@@ -41,7 +69,7 @@ export default function TabLayout() {
 				options={{
 					title: "ImageViewer",
 					tabBarIcon: ({ color }) => (
-						<Ionicons name="images" size={28} color={color} />
+						<Ionicons name="images" size={24} color={color} />
 					),
 				}}
 			/>

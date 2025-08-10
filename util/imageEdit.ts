@@ -1,0 +1,324 @@
+import { IImageContext } from "@/app/interface/interface";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+
+export async function cropByPoints(
+	image: IImageContext,
+	points: { x: number; y: number }[]
+): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for cropping.");
+	}
+
+	if (points.length < 4) {
+		throw new Error("At least 4 points are required to define a crop area.");
+	}
+	const xValues = points.map((p) => p.x);
+	const yValues = points.map((p) => p.y);
+	const minX = Math.min(...xValues);
+	const minY = Math.min(...yValues);
+	const maxX = Math.max(...xValues);
+	const maxY = Math.max(...yValues);
+	const width = maxX - minX;
+	const height = maxY - minY;
+
+	return crop(image, minX, minY, width, height);
+}
+
+export async function crop(
+	image: IImageContext,
+	left: number,
+	top: number,
+	width: number,
+	height: number
+): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for cropping.");
+	}
+	console.log("Cropping image:", "at", left, top, "with size", width, height);
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+
+	manipulator.crop({
+		originX: left,
+		originY: top,
+		width,
+		height,
+	});
+
+	let newImage: any;
+
+	const renderedImage = await manipulator.renderAsync();
+
+	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	newImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	if (newImage) {
+		const retImage: IImageContext = {
+			uri: newImage.uri || "",
+			name: image.name,
+			width: width,
+			height: height,
+			operations: "crop",
+		};
+		return retImage;
+	}
+
+	return image;
+}
+
+export async function rotate(
+	image: IImageContext,
+	angle: number
+): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for rotation.");
+	}
+
+	console.log("Rotating image by", angle, "degrees");
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+
+	manipulator.rotate(angle);
+
+	const renderedImage = await manipulator.renderAsync();
+
+	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	const rotatedImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	// if (rotatedImage.uri) {
+	// 	const cropRotate = getCropAfterRotation(image.width, image.height, angle);
+
+	// 	let newImage = {
+	// 		uri: rotatedImage.uri,
+	// 		name: image.name,
+	// 		width: rotatedImage.width,
+	// 		height: rotatedImage.height,
+	// 	};
+
+	// 	const croppedImage = await crop(
+	// 		newImage,
+	// 		cropRotate.X,
+	// 		cropRotate.Y,
+	// 		cropRotate.width,
+	// 		cropRotate.height
+	// 	);
+
+	if (rotatedImage) {
+		const retImage: IImageContext = {
+			uri: rotatedImage.uri || "",
+			name: image.name,
+			width: rotatedImage.width,
+			height: rotatedImage.height,
+			operations: "rotate",
+		};
+		return retImage;
+	}
+
+	return image;
+}
+
+export async function flipH(image: IImageContext): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for horizontal flip.");
+	}
+
+	//console.log("Flipping image horizontally");
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+	manipulator.flip("horizontal");
+
+	const renderedImage = await manipulator.renderAsync();
+	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	const flippedImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	if (flippedImage.uri) {
+		const retImage: IImageContext = {
+			uri: flippedImage.uri || "",
+			name: image.name,
+			width: flippedImage.width,
+			height: flippedImage.height,
+			operations: "flipped",
+		};
+		return retImage;
+	}
+
+	return image;
+}
+
+// Add vertical flip
+export async function flipV(image: IImageContext): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for vertical flip.");
+	}
+
+	const manipulator = ImageManipulator.manipulate(image.uri);
+	manipulator.flip("vertical");
+
+	const renderedImage = await manipulator.renderAsync();
+	const imageType = getImageType(image.name || "");
+	const saveFormat = getsaveFormat(imageType);
+
+	const flippedImage = await renderedImage.saveAsync({
+		format: saveFormat,
+		compress: 0.9,
+	});
+
+	if (flippedImage.uri) {
+		const retImage: IImageContext = {
+			uri: flippedImage.uri || "",
+			name: image.name,
+			width: flippedImage.width,
+			height: flippedImage.height,
+			operations: "flipped",
+		};
+		return retImage;
+	}
+
+	return image;
+}
+
+export async function toneAdj(
+	image: IImageContext,
+	brightness: number = 1,
+	contrast: number = 1,
+	saturate: number = 1,
+	sepia: number = 0,
+	hue: number = 0
+): Promise<IImageContext> {
+	if (!image || !image.uri) {
+		throw new Error("Invalid image context provided for color adjustments.");
+	}
+
+	// For web, we can create an offscreen canvas to apply the adjustments
+	if (typeof window !== "undefined" && typeof document !== "undefined") {
+		return new Promise((resolve, reject) => {
+			// Create an image element to load the source image
+			const img = new Image();
+			img.crossOrigin = "anonymous";
+
+			img.onload = () => {
+				// Create canvas with the image dimensions
+				const canvas = document.createElement("canvas");
+				canvas.width = img.width;
+				canvas.height = img.height;
+				const ctx = canvas.getContext("2d");
+
+				if (!ctx) {
+					reject(new Error("Could not get 2D context for canvas"));
+					return;
+				}
+
+				// Draw the original image
+				ctx.drawImage(img, 0, 0);
+
+				// Apply filters using CSS filter syntax
+				let filterString =
+					`brightness(${brightness})  ` +
+					`contrast(${contrast}) ` +
+					`saturate(${saturate}) ` +
+					`hue-rotate(${hue}deg) ` +
+					`sepia(${sepia}) `.trim();
+
+				ctx.filter = filterString;
+
+				// Clear and redraw with filters
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(img, 0, 0);
+
+				// Reset filter
+				ctx.filter = "none";
+
+				// Convert to base64
+				const imageType = getImageType(image.name || "");
+				const mimeType =
+					imageType === "png"
+						? "image/png"
+						: imageType === "webp"
+							? "image/webp"
+							: "image/jpeg";
+				const quality = 0.9;
+
+				// Get base64 data URL
+				const dataUrl = canvas.toDataURL(mimeType, quality);
+
+				const retImage: IImageContext = {
+					uri: dataUrl,
+					name: image.name,
+					width: img.width,
+					height: img.height,
+					operations: "Tone",
+				};
+
+				resolve(retImage);
+			};
+
+			img.onerror = () => {
+				reject(new Error("Failed to load image for color adjustment"));
+			};
+
+			// Start loading the image
+			img.src = image.uri ?? "";
+		});
+	}
+
+	// For native platforms, you would need to use a different approach
+	// This is a simplified fallback that returns the original image
+	console.warn("Color adjustments are currently only supported on web");
+	return image;
+}
+
+function getImageType(name: string): string {
+	const parts = name.split(".");
+	const returnType =
+		parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+	return returnType.toLowerCase();
+}
+function getsaveFormat(imageType: string): SaveFormat {
+	switch (imageType) {
+		case "png":
+			return SaveFormat.PNG;
+		case "webp":
+			return SaveFormat.WEBP;
+		case "jpg":
+		case "jpeg":
+			return SaveFormat.JPEG;
+		default:
+			return SaveFormat.JPEG; // Default to JPEG if type is unknown
+	}
+}
+
+function getCropAfterRotation(
+	originalWidth: number,
+	originalHeight: number,
+	degrees: number
+): { X: number; Y: number; width: number; height: number } {
+	const radians = (degrees * Math.PI) / 180;
+	const newWidth =
+		Math.abs(originalWidth * Math.cos(radians)) +
+		Math.abs(originalHeight * Math.sin(radians));
+	const newHeight =
+		Math.abs(originalHeight * Math.cos(radians)) +
+		Math.abs(originalWidth * Math.sin(radians));
+
+	return {
+		X: newWidth - originalWidth,
+		Y: newHeight - originalHeight,
+		width: originalHeight - (newWidth - originalWidth),
+		height: originalHeight - (newHeight - originalHeight),
+	};
+}
