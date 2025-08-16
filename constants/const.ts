@@ -1,5 +1,6 @@
-export const Version = "Version: 0.05.05";
+export const Version = "Version: 0.06.01";
 export const ReleaseNote =
+	"2025-08-10 0.06.01 Adding AI editing tools on UI\n" +
 	"2025-08-10 0.05.05 Status Bar & edit img layout\n" +
 	"2025-08-09 0.05.04 show releaseNote\n" +
 	"2025-08-09 0.05.03 remove crop after rotate\n" +

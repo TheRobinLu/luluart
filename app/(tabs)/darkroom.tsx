@@ -49,6 +49,27 @@ export default function DarkroomScreen() {
 		//{ key: "contrast", icon: "contrast-outline", label: "Contrast" },
 	];
 
+	//using MaterialCommunityIcons
+	const aiTools = [
+		{
+			key: "background",
+			icon: "badge-account-horizontal-outline",
+			label: "Background",
+		},
+		{ key: "entity", icon: "crystal-ball", label: "Entity" },
+		{ key: "beautify", icon: "face-woman-shimmer", label: "Beautify" },
+		{ key: "lights", icon: "car-light-high", label: "Lights" },
+		{ key: "frame", icon: "image-frame", label: "Frame" },
+		{ key: "repair", icon: "medical-bag", label: "Repair" },
+
+		{
+			key: "environment",
+			icon: "weather-partly-lightning",
+			label: "Environment",
+		},
+		{ key: "styles", icon: "drama-masks", label: "Styles" },
+		{ key: "fantastic", icon: "auto-fix", label: "Fantastic" },
+	];
 	const ICON_SIZE = 42;
 	const ICON_MARGIN = 6;
 	// const MIN_ICONS = 3;
@@ -891,25 +912,108 @@ export default function DarkroomScreen() {
 						))}
 					</View>
 				</View>
-				<Text style={textStyles.toolboxTitle}>{getText(lang, "Toolbox")}</Text>
-				<View id="toolbox" style={viewStyles.iconRow}>
-					{toolIcons.map((item) => {
+
+				<View id="tool-box" style={viewStyles.fileBox}>
+					<Text style={textStyles.toolboxTitle}>
+						{getText(lang, "Toolbox")}
+					</Text>
+					<View id="toolbox" style={viewStyles.iconRow}>
+						{toolIcons.map((item) => {
+							const isSelected = selectedTool === item.key;
+							return (
+								<Pressable
+									key={item.key}
+									style={({ hovered }) => [
+										viewStyles.iconButton,
+										{ position: "relative" },
+										isSelected
+											? viewStyles.selectedTool
+											: viewStyles.unselectedTool,
+										hovered && viewStyles.iconButtonHovered,
+									]}
+									onPress={() => selectTool(item.key)}
+								>
+									{({ hovered }) => (
+										<>
+											<Ionicons
+												name={item.icon}
+												size={28}
+												style={{
+													color: isSelected
+														? currTheme.btntextSelected
+														: currTheme.btntext,
+												}}
+											/>
+											{hovered && (
+												<Text
+													style={[
+														textStyles.iconLabel,
+														isSelected
+															? textStyles.selectedToolText
+															: textStyles.unselectedToolText,
+														{
+															position: "absolute",
+															zIndex: 999,
+															top: ICON_SIZE + 2,
+															left: 0,
+														},
+													]}
+												>
+													{getText(lang, item.label)}
+												</Text>
+											)}
+										</>
+									)}
+								</Pressable>
+							);
+						})}
+					</View>
+				</View>
+
+				{/* AI Tools section */}
+				<Text style={textStyles.toolboxTitle}>{getText(lang, "AI Tools")}</Text>
+				<View
+					id="ai-tools"
+					style={[
+						viewStyles.iconRow,
+						{
+							flexWrap: "wrap",
+							rowGap: ICON_MARGIN,
+							columnGap: ICON_MARGIN,
+							marginBottom: 8,
+						},
+					]}
+				>
+					{aiTools.map((item, idx) => {
 						const isSelected = selectedTool === item.key;
 						return (
 							<Pressable
 								key={item.key}
 								style={({ hovered }) => [
 									viewStyles.iconButton,
+									{
+										position: "relative",
+										width: ICON_SIZE,
+										height: ICON_SIZE,
+									},
+
+									{ marginBottom: 16 },
 									isSelected
 										? viewStyles.selectedTool
 										: viewStyles.unselectedTool,
 									hovered && viewStyles.iconButtonHovered,
 								]}
-								onPress={() => selectTool(item.key)}
+								onPress={() => {
+									if (item.key === "entity") {
+										//navigateToEntity();
+									} else {
+										alert(`AI Tool: ${item.label} is not implemented yet.`);
+									}
+								}}
 							>
 								{({ hovered }) => (
 									<>
-										<Ionicons
+										<MaterialCommunityIcons
 											name={item.icon}
 											size={28}
 											style={{
@@ -925,6 +1029,12 @@ export default function DarkroomScreen() {
 													isSelected
 														? textStyles.selectedToolText
 														: textStyles.unselectedToolText,
+
+													{
+														position: "absolute",
+														zIndex: 999,
+														left: 0,
+													},
 												]}
 											>
 												{getText(lang, item.label)}
@@ -1135,7 +1245,7 @@ export default function DarkroomScreen() {
 				)}
 
 				{/* Action buttons at the bottom */}
-				<View style={viewStyles.actionButtonContainer}>
+				<View id="action" style={viewStyles.actionButtonContainer}>
 					<Pressable
 						style={({ hovered }) => [
 							viewStyles.button,
@@ -1189,12 +1299,13 @@ const viewStyles = StyleSheet.create({
 		zIndex: 2,
 	},
 	fileBox: {
-		marginBottom: 18,
+		marginBottom: 8,
 	},
 	iconRow: {
 		flexDirection: "row",
 		flexWrap: "nowrap",
 		marginBottom: 8,
+		gap: ICON_MARGIN, // <-- add this for consistent gap
 	},
 	iconButton: {
 		flexDirection: "row",
@@ -1202,15 +1313,13 @@ const viewStyles = StyleSheet.create({
 		backgroundColor: currTheme.btnface,
 		color: currTheme.btntext,
 		padding: 6,
-		marginRight: ICON_MARGIN,
+		// marginRight: ICON_MARGIN, // <-- remove this line
 		borderRadius: 6,
-		maxHeight: ICON_SIZE,
-		maxWidth: ICON_SIZE,
 		justifyContent: "center",
-		// Merge hovered style
 		borderWidth: 1,
 		borderColor: currTheme.btnfaceSelected,
 		borderStyle: "solid",
+		overflow: "visible",
 	},
 
 	iconButtonHovered: {
