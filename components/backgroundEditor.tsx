@@ -1,3 +1,4 @@
+import getText from "@/constants/dictionary"; // Import dictionary for translations
 import Slider from "@react-native-community/slider";
 import React, { useState } from "react";
 import {
@@ -10,12 +11,19 @@ import {
 	View,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { baseColors, currTheme } from "../constants/Colors"; // <-- add this import
+import { baseColors, currTheme } from "../constants/Colors";
 
 // Dummy texture list
 const TEXTURES = ["Canvas", "Paper", "Wood", "Metal"];
 
-export default function BackgroundEditor() {
+// Add interface for props
+interface BackgroundEditorProps {
+	lang: string; // Add language prop
+}
+
+export default function BackgroundEditor({
+	lang = "EN",
+}: BackgroundEditorProps) {
 	const [selected, setSelected] = useState<
 		"Blur" | "Color" | "Texture" | "Replace"
 	>("Blur");
@@ -28,15 +36,18 @@ export default function BackgroundEditor() {
 	// Generate prompt based on selection
 	React.useEffect(() => {
 		let p = "";
-		if (selected === "Blur") p = `Apply blur with level ${blurLevel}.`;
-		else if (selected === "Color") p = `Change background color to ${color}.`;
-		else if (selected === "Texture") p = `Apply texture: ${texture}.`;
+		if (selected === "Blur")
+			p = `${getText(lang, "Apply blur with level")} ${blurLevel}.`;
+		else if (selected === "Color")
+			p = `${getText(lang, "Change background color to")} ${color}.`;
+		else if (selected === "Texture")
+			p = `${getText(lang, "Apply texture")}: ${texture}.`;
 		else if (selected === "Replace")
 			p = replaceImg
-				? `Replace background with selected image.`
-				: "Select an image to replace background.";
+				? getText(lang, "Replace background with selected image.")
+				: getText(lang, "Select an image to replace background.");
 		setPrompt(p);
-	}, [selected, blurLevel, color, texture, replaceImg]);
+	}, [selected, blurLevel, color, texture, replaceImg, lang]);
 
 	// Dummy upload handler
 	const handleUpload = () => {
@@ -47,36 +58,43 @@ export default function BackgroundEditor() {
 		<View style={styles.container} id="bge-container">
 			{/* Row 1: Icon buttons */}
 			<View style={styles.row} id="bge-row-icons">
-				{["Blur", "Color", "Texture", "Replace"].map((key) => (
+				{[
+					{ key: "Blur", label: "Blur" },
+					{ key: "Color", label: "Color" },
+					{ key: "Texture", label: "Texture" },
+					{ key: "Replace", label: "Replace" },
+				].map((item) => (
 					<Pressable
-						key={key}
+						key={item.key}
 						style={[
 							styles.iconButton,
-							selected === key && styles.selectedButton,
+							selected === item.key && styles.selectedButton,
 						]}
-						onPress={() => setSelected(key as any)}
-						id={`bge-btn-${key.toLowerCase()}`}
+						onPress={() => setSelected(item.key as any)}
+						id={`bge-btn-${item.key.toLowerCase()}`}
 					>
 						<Ionicons
 							name={
-								key === "Blur"
+								item.key === "Blur"
 									? "water-outline"
-									: key === "Color"
+									: item.key === "Color"
 										? "color-palette-outline"
-										: key === "Texture"
+										: item.key === "Texture"
 											? "grid-outline"
 											: "image-outline"
 							}
 							size={28}
 							color={
-								selected === key ? baseColors.cyan_300 : baseColors.cyan_500
+								selected === item.key
+									? baseColors.cyan_300
+									: baseColors.cyan_500
 							}
 						/>
 						<Text
 							style={styles.iconLabel}
-							id={`bge-label-${key.toLowerCase()}`}
+							id={`bge-label-${item.key.toLowerCase()}`}
 						>
-							{key}
+							{getText(lang, item.label)}
 						</Text>
 					</Pressable>
 				))}
@@ -96,7 +114,9 @@ export default function BackgroundEditor() {
 			<View style={styles.controlRow} id="bge-row-controls">
 				{selected === "Blur" && (
 					<View style={styles.sliderRow} id="bge-blur-controls">
-						<Text id="bge-blur-label">Blur Level: {blurLevel}</Text>
+						<Text id="bge-blur-label">
+							{getText(lang, "Blur Level")}: {blurLevel}
+						</Text>
 						<Slider
 							style={{ width: 180 }}
 							minimumValue={0}
@@ -118,7 +138,7 @@ export default function BackgroundEditor() {
 				)}
 				{selected === "Texture" && (
 					<View style={styles.textureRow} id="bge-texture-controls">
-						<Text id="bge-texture-label">Texture:</Text>
+						<Text id="bge-texture-label">{getText(lang, "Texture")}:</Text>
 						<select
 							style={styles.textureDropdown as any}
 							value={texture}
@@ -139,7 +159,10 @@ export default function BackgroundEditor() {
 				)}
 				{selected === "Replace" && (
 					<View style={styles.replaceRow} id="bge-replace-controls">
-						<Button title="Upload Image" onPress={handleUpload} />
+						<Button
+							title={getText(lang, "Upload Image")}
+							onPress={handleUpload}
+						/>
 						{replaceImg && (
 							<Image
 								source={{ uri: replaceImg }}
@@ -153,7 +176,7 @@ export default function BackgroundEditor() {
 			{/* Row 4: Prompt text area */}
 			<View style={styles.promptRow} id="bge-row-prompt">
 				<Text style={styles.promptLabel} id="bge-prompt-label">
-					Prompt:
+					{getText(lang, "Prompt")}:
 				</Text>
 				<TextInput
 					style={styles.promptInput}

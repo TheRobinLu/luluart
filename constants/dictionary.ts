@@ -54,6 +54,10 @@ const words = [
 	{ en: "Portrait", cn: "肖像" },
 	{ en: "Entity", cn: "主体" },
 	{ en: "Fantastic", cn: "奇幻" },
+	{ en: "Color", cn: "颜色" },
+	{ en: "Texture", cn: "纹理" },
+	{ en: "Replace", cn: "替换" },
+	{ en: "Prompt", cn: "提示词" },
 
 	// ...add more as needed
 ];
