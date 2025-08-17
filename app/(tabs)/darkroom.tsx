@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import BackgroundEditor from "../../components/backgroundEditor"; // adjust path if needed
 import { baseColors, currTheme } from "../../constants/Colors";
 import { Version } from "../../constants/const";
 import { browseImageFile } from "../../util/sysfile"; // adjust path if needed
@@ -1004,11 +1005,7 @@ export default function DarkroomScreen() {
 									hovered && viewStyles.iconButtonHovered,
 								]}
 								onPress={() => {
-									if (item.key === "entity") {
-										//navigateToEntity();
-									} else {
-										alert(`AI Tool: ${item.label} is not implemented yet.`);
-									}
+									selectTool(item.key);
 								}}
 							>
 								{({ hovered }) => (
@@ -1046,6 +1043,10 @@ export default function DarkroomScreen() {
 						);
 					})}
 				</View>
+
+				{/* Background editor component - new section */}
+
+				{selectedTool === "background" && <BackgroundEditor />}
 
 				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
 				<View style={viewStyles.spacer}></View>
@@ -1113,7 +1114,7 @@ export default function DarkroomScreen() {
 
 				{/* Color sliders: only show when tool = color */}
 				{selectedTool === "tone" && (
-					<View style={viewStyles.colorSlidersContainer}>
+					<View id="tones" style={viewStyles.colorSlidersContainer}>
 						<View style={viewStyles.colorSliderRow}>
 							<Ionicons
 								name="sunny-outline"
