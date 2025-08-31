@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import getText from "@/constants/dictionary"; // Import dictionary for translations
 import Slider from "@react-native-community/slider";
-import React, { useState } from "react";
+import * as React from "react";
 import {
 	Button,
 	Image,
@@ -19,35 +20,72 @@ const TEXTURES = ["Canvas", "Paper", "Wood", "Metal"];
 // Add interface for props
 interface BackgroundEditorProps {
 	lang: string; // Add language prop
+	// NEW: callbacks to inform parent of option/prompt
+	onOptionChange?: (option: string) => void;
+	onPromptChange?: (prompt: string) => void;
 }
 
 export default function BackgroundEditor({
 	lang = "EN",
+	onOptionChange,
+	onPromptChange,
 }: BackgroundEditorProps) {
-	const [selected, setSelected] = useState<
-		"Blur" | "Color" | "Texture" | "Replace"
-	>("Blur");
-	const [blurLevel, setBlurLevel] = useState(5);
-	const [color, setColor] = useState(baseColors.sky_300);
-	const [texture, setTexture] = useState(TEXTURES[0]);
-	const [replaceImg, setReplaceImg] = useState<string | null>(null);
-	const [prompt, setPrompt] = useState("");
+	const [selected, setSelected] = React.useState("");
+	// Blur level presets (mapped to the slider 0-20 range)
+	const BLUR_PRESETS = React.useMemo(
+		() => [
+			{ value: 1, label: "Slightly blurry" },
+			{ value: 2, label: "Moderately blurry" },
+			{ value: 3, label: "Noticeably blurry" },
+			{ value: 4, label: "Strongly blurry" },
+			{ value: 5, label: "Extremely blurry" },
+		],
+		[]
+	);
 
-	// Generate prompt based on selection
+	// Use a numeric state for the slider (0-20)
+	const [blurLevel, setBlurLevel] = React.useState<number>(
+		BLUR_PRESETS[0].value
+	);
+
+	const [color, setColor] = React.useState(baseColors.sky_300);
+	const [texture, setTexture] = React.useState(TEXTURES[0]);
+	const [replaceImg, setReplaceImg] = React.useState<string | null>(null);
+	const [prompt, setPrompt] = React.useState("");
+
+	// Notify parent when option changes
+	React.useEffect(() => {
+		onOptionChange?.(selected.toLowerCase());
+	}, [selected, onOptionChange]);
+
+	// Generate prompt based on selection and notify parent
 	React.useEffect(() => {
 		let p = "";
-		if (selected === "Blur")
-			p = `${getText(lang, "Apply blur with level")} ${blurLevel}.`;
-		else if (selected === "Color")
-			p = `${getText(lang, "Change background color to")} ${color}.`;
-		else if (selected === "Texture")
-			p = `${getText(lang, "Apply texture")}: ${texture}.`;
-		else if (selected === "Replace")
+		if (selected === "Blur") {
+			const preset = BLUR_PRESETS.find((pr) => pr.value === blurLevel);
+			const blurLabel = preset?.label ?? `${blurLevel}`;
+			p = `Apply a ${blurLabel} background to the image, keeping the main subjects exactly same as the original.`;
+		} else if (selected === "Color") {
+			p = `Change background color to ${color}.`;
+		} else if (selected === "Texture") {
+			p = `Apply texture: ${texture}.`;
+		} else if (selected === "Replace") {
 			p = replaceImg
-				? getText(lang, "Replace background with selected image.")
-				: getText(lang, "Select an image to replace background.");
+				? `${"Replace background with selected image."}`
+				: `${"Select an image to replace background."}`;
+		}
 		setPrompt(p);
-	}, [selected, blurLevel, color, texture, replaceImg, lang]);
+		onPromptChange?.(p);
+	}, [
+		selected,
+		blurLevel,
+		color,
+		texture,
+		replaceImg,
+		lang,
+		onPromptChange,
+		BLUR_PRESETS,
+	]);
 
 	// Dummy upload handler
 	const handleUpload = () => {
@@ -119,8 +157,8 @@ export default function BackgroundEditor({
 						</Text>
 						<Slider
 							style={{ width: 180 }}
-							minimumValue={0}
-							maximumValue={20}
+							minimumValue={1}
+							maximumValue={5}
 							step={1}
 							value={blurLevel}
 							onValueChange={setBlurLevel}
@@ -289,14 +327,19 @@ const styles = StyleSheet.create({
 		marginBottom: 4,
 		color: currTheme.text, // <-- use theme
 	},
+	// Updated to allow the TextInput to grow with content (auto-height)
 	promptInput: {
 		width: "100%",
-		minHeight: 40,
+		height: 80, // default height
+		minHeight: 60,
+		maxHeight: 100, // cap growth to avoid overflowing the layout
 		borderWidth: 1,
 		borderColor: currTheme.btnfaceSelected, // <-- use theme
 		borderRadius: 6,
 		padding: 8,
+		paddingTop: 8,
 		backgroundColor: currTheme.background, // <-- use theme
 		color: currTheme.text, // <-- use theme
+		textAlignVertical: "top", // ensures multi-line text starts at top on Android
 	},
 });

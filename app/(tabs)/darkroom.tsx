@@ -5,7 +5,14 @@ import { IImageContext } from "@/app/interface/interface";
 import ReleaseNoteModal from "@/components/ReleaseNote";
 
 import getText from "@/constants/dictionary";
-import { cropByPoints, flipH, flipV, rotate, toneAdj } from "@/util/imageEdit";
+import {
+	backgroundModify,
+	cropByPoints,
+	flipH,
+	flipV,
+	rotate,
+	toneAdj,
+} from "@/util/imageEdit";
 import { fetchLanguage, getSysLanguage, storeLanguage } from "@/util/language";
 import Slider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
@@ -109,6 +116,8 @@ export default function DarkroomScreen() {
 	const [hueValue, setHueValue] = useState(0);
 	const [editAreaWidth, setEditAreaWidth] = useState(1440);
 	const [editAreaHeight, setEditAreaHeight] = useState(768);
+	const [prompt, setPrompt] = useState("");
+	const [backgroundOption, setBackgroundOption] = useState("");
 
 	const [imagePosition, setImagePosition] = useState({
 		x: 0,
@@ -400,6 +409,9 @@ export default function DarkroomScreen() {
 			case "tone":
 				result = (await applyToneAdj()) ?? null;
 				break;
+			case "background":
+				result = (await applyBackgroundEdit()) ?? null;
+				break;
 			default:
 				break;
 		}
@@ -479,6 +491,35 @@ export default function DarkroomScreen() {
 		}
 
 		return editImage;
+	};
+
+	const applyBackgroundEdit = async () => {
+		if (!editImage) return null;
+
+		// Prefer prompt from BackgroundEditor; fallback to option-based default
+		const option = (backgroundOption || "").toLowerCase();
+		const backgroundPrompt =
+			prompt?.trim() ||
+			(option === "blur"
+				? "Apply a blur effect to the background."
+				: option === "color"
+					? "Change the background color."
+					: option === "texture"
+						? "Apply a background texture."
+						: option === "replace"
+							? "Replace the background with the selected image."
+							: "Apply a default background effect.");
+
+		const result = await backgroundModify(editImage, backgroundPrompt);
+		if (result) {
+			// Reset background edit states after apply
+			setImageStack((prev) => [
+				...prev,
+				{ ...result, operations: "background" },
+			]);
+			setEditImage(result);
+		}
+		return result || editImage;
 	};
 
 	const onImageLayout = (event: any) => {
@@ -1047,7 +1088,13 @@ export default function DarkroomScreen() {
 				</View>
 
 				{/* Background editor component - new section */}
-				{selectedTool === "background" && <BackgroundEditor lang={lang} />}
+				{selectedTool === "background" && (
+					<BackgroundEditor
+						lang={lang}
+						onOptionChange={(opt) => setBackgroundOption(opt)}
+						onPromptChange={(p) => setPrompt(p)}
+					/>
+				)}
 
 				{/* Add a spacer that pushes content to the top and buttons to the bottom */}
 				<View style={viewStyles.spacer}></View>

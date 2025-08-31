@@ -1,5 +1,6 @@
 import { IImageContext } from "@/app/interface/interface";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { QwenImageEditAPI } from "./ImageApi";
 
 export async function cropByPoints(
 	image: IImageContext,
@@ -282,6 +283,21 @@ export async function toneAdj(
 	return image;
 }
 
+///////////////////AI EDITING/////////////////////
+
+export async function backgroundModify(
+	imageContext: IImageContext,
+	prompt: string
+): Promise<IImageContext> {
+	if (!imageContext || !imageContext.uri) {
+		throw new Error("Invalid image context provided for AI editing.");
+	}
+
+	// Call the QwenImageEditAPI with the image context and prompt
+	const editedImage = await QwenImageEditAPI(imageContext, prompt);
+	return editedImage;
+}
+
 function getImageType(name: string): string {
 	const parts = name.split(".");
 	const returnType =
@@ -302,6 +318,7 @@ function getsaveFormat(imageType: string): SaveFormat {
 	}
 }
 
+//no use
 export function getCropAfterRotation(
 	originalWidth: number,
 	originalHeight: number,
